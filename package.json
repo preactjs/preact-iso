@@ -1,6 +1,6 @@
 {
 	"name": "preact-iso",
-	"version": "2.3.1",
+	"version": "2.3.2",
 	"type": "module",
 	"main": "src/index.js",
 	"module": "src/index.js",
@@ -19,6 +19,12 @@
 		"type": "git",
 		"url": "https://github.com/preactjs/preact-iso"
 	},
+	"files": [
+		"src",
+		"LICENSE",
+		"package.json",
+		"README.md"
+	],
 	"scripts": {
 		"test": "node --experimental-vm-modules node_modules/.bin/jest"
 	},
