@@ -1,4 +1,5 @@
-import { exec } from '../router.js';
+import { describe, it, expect } from '@jest/globals';
+import { exec } from '../src/router.js';
 
 function execPath(path, pattern, opts) {
 	return exec(path, pattern, { path, query: {}, params: {}, ...(opts || {}) });

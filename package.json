@@ -20,8 +20,16 @@
 		"url": "https://github.com/preactjs/preact-iso"
 	},
 	"scripts": {
-		"test-build": "node --experimental-modules test/bundle-using-wmr.js",
 		"test": "node --experimental-vm-modules node_modules/.bin/jest"
+	},
+	"jest": {
+		"testEnvironment": "jsdom",
+		"testEnvironmentOptions": {
+			"customExportConditions": [
+				"node",
+				"node-addons"
+			]
+		}
 	},
 	"peerDependencies": {
 		"preact": ">=10",
@@ -33,9 +41,11 @@
 		}
 	},
 	"devDependencies": {
-		"htm": "^3.0.4",
-		"jest": "26.6.3",
-		"preact": "^10.5.12",
-		"preact-render-to-string": "^5.1.12"
+		"htm": "^3.1.1",
+		"jest": "^29.7.0",
+		"jest-environment-jsdom": "^29.7.0",
+		"jsdom": "^22.1.0",
+		"preact": "10.15.1",
+		"preact-render-to-string": "^6.2.2"
 	}
 }
