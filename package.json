@@ -2,20 +2,20 @@
 	"name": "preact-iso",
 	"version": "2.3.1",
 	"description": "Isomorphic utilities for Preact",
-	"main": "./index.js",
-	"module": "./index.js",
-	"types": "./index.d.ts",
+	"main": "./src/index.js",
+	"module": "./src/index.js",
+	"types": "./isrc/ndex.d.ts",
 	"type": "module",
 	"scripts": {
 		"test-build": "node --experimental-modules test/bundle-using-wmr.js",
 		"test": "node --experimental-vm-modules node_modules/.bin/jest"
 	},
 	"exports": {
-		".": "./index.js",
-		"./router": "./router.js",
-		"./lazy": "./lazy.js",
-		"./prerender": "./prerender.js",
-		"./hydrate": "./hydrate.js"
+		".": "./src/index.js",
+		"./router": "./src/router.js",
+		"./lazy": "./src/lazy.js",
+		"./prerender": "./src/prerender.js",
+		"./hydrate": "./src/hydrate.js"
 	},
 	"author": "The Preact Authors (https://preactjs.com)",
 	"repository": {
