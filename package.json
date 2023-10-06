@@ -1,37 +1,37 @@
 {
 	"name": "preact-iso",
 	"version": "2.3.1",
-	"description": "Isomorphic utilities for Preact",
-	"main": "./index.js",
-	"module": "./index.js",
-	"types": "./index.d.ts",
 	"type": "module",
-	"scripts": {
-		"test-build": "node --experimental-modules test/bundle-using-wmr.js",
-		"test": "node --experimental-vm-modules node_modules/.bin/jest"
-	},
+	"main": "src/index.js",
+	"module": "src/index.js",
+	"types": "src/index.d.ts",
 	"exports": {
-		".": "./index.js",
-		"./router": "./router.js",
-		"./lazy": "./lazy.js",
-		"./prerender": "./prerender.js",
-		"./hydrate": "./hydrate.js"
+		".": "./src/index.js",
+		"./router": "./src/router.js",
+		"./lazy": "./src/lazy.js",
+		"./prerender": "./src/prerender.js",
+		"./hydrate": "./src/hydrate.js"
 	},
+	"license": "MIT",
+	"description": "Isomorphic utilities for Preact",
 	"author": "The Preact Authors (https://preactjs.com)",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/preactjs/wmr",
 		"directory": "packages/preact-iso"
 	},
-	"license": "MIT",
+	"scripts": {
+		"test-build": "node --experimental-modules test/bundle-using-wmr.js",
+		"test": "node --experimental-vm-modules node_modules/.bin/jest"
+	},
+	"peerDependencies": {
+		"preact": ">=10",
+		"preact-render-to-string": ">=5"
+	},
 	"devDependencies": {
 		"htm": "^3.0.4",
 		"jest": "26.6.3",
 		"preact": "^10.5.12",
 		"preact-render-to-string": "^5.1.12"
-	},
-	"peerDependencies": {
-		"preact": ">=10",
-		"preact-render-to-string": ">=5"
 	}
 }
