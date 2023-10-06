@@ -17,8 +17,7 @@
 	"author": "The Preact Authors (https://preactjs.com)",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/preactjs/wmr",
-		"directory": "packages/preact-iso"
+		"url": "https://github.com/preactjs/preact-iso"
 	},
 	"scripts": {
 		"test-build": "node --experimental-modules test/bundle-using-wmr.js",
