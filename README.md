@@ -138,6 +138,7 @@ const App = () => (
 	<LocationProvider>
 		<ErrorBoundary>
 			<Router>
+				<Route path="/" component={Home} />
 				<Route path="/profiles/*" component={Profile} />
 			</Router>
 		</ErrorBoundary>
