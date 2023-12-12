@@ -129,7 +129,7 @@ function Profile() {
 					<Route path="/a" component={ProfileA} />
 					<Route path="/b" component={ProfileB} />
 				</Router>
-			<ErrorBoundary>
+			</ErrorBoundary>
 		</div>
 	);
 }
