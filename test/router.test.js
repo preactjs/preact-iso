@@ -504,4 +504,32 @@ describe('Router', () => {
 		await sleep(20);
 		expect(params).toMatchObject({ id: 'bar' });
 	});
+
+	it('should replace the current URL', async () => {
+		const pushState = jest.spyOn(history, 'pushState');
+		const replaceState = jest.spyOn(history, 'replaceState');
+		let loc;
+
+		render(
+			html`
+				<${LocationProvider}>
+					<${Router}>
+						<${Route} path="/foo" component=${() => null} />
+					<//>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		await sleep(20);
+		loc.route("/foo", true);
+		expect(pushState).not.toHaveBeenCalled();
+		expect(replaceState).toHaveBeenCalledWith(null, "", "/foo");
+
+		pushState.mockRestore();
+		replaceState.mockRestore();
+	});
 });
