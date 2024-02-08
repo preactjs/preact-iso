@@ -26,7 +26,8 @@
 		"README.md"
 	],
 	"scripts": {
-		"test": "node --experimental-vm-modules node_modules/.bin/jest"
+		"test": "node --experimental-vm-modules node_modules/.bin/jest",
+		"postinstall": "npx simple-git-hooks"
 	},
 	"jest": {
 		"testEnvironment": "jsdom",
@@ -46,12 +47,36 @@
 			"optional": true
 		}
 	},
+	"prettier": {
+		"singleQuote": true,
+		"trailingComma": "none",
+		"useTabs": true,
+		"printWidth": 120,
+		"arrowParens": "avoid"
+	},
+	"lint-staged": {
+		"*.{js,ts}": [
+			"prettier --write"
+		],
+		"*.md": [
+			"prettier --write"
+		],
+		"*.json": [
+			"prettier --write"
+		]
+	},
+	"simple-git-hooks": {
+		"pre-commit": "pnpm lint-staged"
+	},
 	"devDependencies": {
 		"htm": "^3.1.1",
 		"jest": "^29.7.0",
 		"jest-environment-jsdom": "^29.7.0",
 		"jsdom": "^22.1.0",
+		"lint-staged": "^15.2.2",
+		"postinstall": "^0.9.0",
 		"preact": "10.15.1",
-		"preact-render-to-string": "^6.2.2"
+		"preact-render-to-string": "^6.2.2",
+		"prettier": "^3.2.5"
 	}
 }
