@@ -25,6 +25,9 @@ const UPDATE = (state, url) => {
 		url = link.href.replace(location.origin, '');
 	} else if (typeof url === 'string') {
 		push = true;
+	} else if (url && url.url) {
+		push = !url.replace;
+		url = url.url;
 	} else {
 		url = location.pathname + location.search;
 	}
@@ -69,7 +72,13 @@ export function LocationProvider(props) {
 		const u = new URL(url, location.origin);
 		const path = u.pathname.replace(/(.)\/$/g, '$1');
 		// @ts-ignore-next
-		return { url, path, query: Object.fromEntries(u.searchParams), route, wasPush };
+		return {
+			url,
+			path,
+			query: Object.fromEntries(u.searchParams),
+			route: (url, replace) => route({ url, replace }),
+			wasPush
+		};
 	}, [url]);
 
 	useLayoutEffect(() => {

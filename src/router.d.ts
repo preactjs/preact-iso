@@ -13,7 +13,7 @@ interface LocationHook {
 	url: string;
 	path: string;
 	query: Record<string, string>;
-	route: (url: string) => void;
+	route: (url: string, replace?: boolean) => void;
 }
 export const useLocation: () => LocationHook;
 
