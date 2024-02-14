@@ -17,7 +17,7 @@
 	"author": "The Preact Authors (https://preactjs.com)",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/preactjs/preact-iso"
+		"url": "git+https://github.com/preactjs/preact-iso.git"
 	},
 	"files": [
 		"src",
