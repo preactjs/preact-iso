@@ -1,5 +1,5 @@
 import { h, options, cloneElement } from 'preact';
-import renderToString from 'preact-render-to-string';
+import { renderToStringAsync } from 'preact-render-to-string';
 
 let vnodeHook;
 
@@ -31,7 +31,7 @@ export default async function prerender(vnode, options) {
 	const render = () => {
 		if (++tries > maxDepth) return;
 		try {
-			return renderToString(vnode);
+			return renderToStringAsync(vnode);
 		} catch (e) {
 			if (e && e.then) return e.then(render);
 			throw e;
