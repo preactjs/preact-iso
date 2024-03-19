@@ -12,7 +12,6 @@ options.vnode = vnode => {
 /**
  * @param {ReturnType<h>} vnode The root JSX element to render (eg: `<App />`)
  * @param {object} [options]
- * @param {number} [options.maxDepth = 10] The maximum number of nested asynchronous operations to wait for before flushing
  * @param {object} [options.props] Additional props to merge into the root JSX element
  */
 export default async function prerender(vnode, options) {
