@@ -39,7 +39,7 @@
 	},
 	"peerDependencies": {
 		"preact": ">=10",
-		"preact-render-to-string": ">=5"
+		"preact-render-to-string": ">=6.4.0"
 	},
 	"peerDependenciesMeta": {
 		"preact-render-to-string": {
