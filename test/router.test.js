@@ -55,6 +55,68 @@ describe('Router', () => {
 		});
 	});
 
+	it.only('should allow updating props in a route', async () => {
+		const Home = jest.fn(() => html`<h1>Home</h1>`);
+		const stack = [];
+		let loc;
+		render(
+			html`
+				<${LocationProvider}>
+					<${Router}
+						onRouteChange=${url => {
+							stack.push(url);
+						}}
+					>
+						<${Home} path="/" test="2" />
+					<//>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		expect(scratch).toHaveProperty('textContent', 'Home');
+		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' }, expect.anything());
+		expect(loc).toMatchObject({
+			url: '/',
+			path: '/',
+			query: {},
+			route: expect.any(Function)
+		});
+
+		Home.mockReset();
+
+		render(
+			html`
+				<${LocationProvider}>
+					<${Router}
+						onRouteChange=${url => {
+							stack.push(url);
+						}}
+					>
+						<${Home} path="/" test="3" />
+					<//>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		console.log(scratch.outerHTML)
+		expect(scratch).toHaveProperty('textContent', 'Home');
+		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' }, expect.anything());
+		expect(loc).toMatchObject({
+			url: '/',
+			path: '/',
+			query: {},
+			route: expect.any(Function)
+		});
+	});
+
 	it('should switch between synchronous routes', async () => {
 		const Home = jest.fn(() => html`<h1>Home</h1>`);
 		const Profiles = jest.fn(() => html`<h1>Profiles</h1>`);
