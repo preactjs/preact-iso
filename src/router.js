@@ -118,23 +118,21 @@ export function Router(props) {
 	const didSuspend = useRef();
 	didSuspend.current = false;
 
-	cur.current = useMemo(() => {
+	useMemo(() => {
 		// This hack prevents Preact from diffing when we swap `cur` to `prev`:
 		if (this.__v && this.__v.__k) this.__v.__k.reverse();
 
 		count.current++;
-
 		prev.current = cur.current;
-
-		let p, d, m;
-		toChildArray(props.children).some(vnode => {
-			const matches = exec(rest, vnode.props.path, (m = { ...vnode.props, path: rest, query, params, rest: '' }));
-			if (matches) return (p = cloneElement(vnode, m));
-			if (vnode.props.default) d = cloneElement(vnode, m);
-		});
-
-		return h(RouteContext.Provider, { value: m }, p || d);
 	}, [url]);
+
+	let pr, d, m;
+	toChildArray(props.children).some(vnode => {
+		const matches = exec(rest, vnode.props.path, (m = { ...vnode.props, path: rest, query, params, rest: '' }));
+		if (matches) return (pr = cloneElement(vnode, m));
+		if (vnode.props.default) d = cloneElement(vnode, m);
+	});
+	cur.current =  h(RouteContext.Provider, { value: m }, pr || d);
 
 	// Reset previous children - if rendering succeeds synchronously, we shouldn't render the previous children.
 	const p = prev.current;

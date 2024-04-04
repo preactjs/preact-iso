@@ -1,5 +1,6 @@
 import { jest, describe, it, beforeEach, expect } from '@jest/globals';
 import { h, render } from 'preact';
+import { useState } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
@@ -53,6 +54,56 @@ describe('Router', () => {
 			query: {},
 			route: expect.any(Function)
 		});
+	});
+
+	it('should allow updating props in a route', async () => {
+		const Home = jest.fn(() => html`<h1>Home</h1>`);
+		const stack = [];
+		let loc, set;
+
+		const App = () => {
+			const [test, setTest] = useState('2');
+			set = setTest;
+			return html`
+				<${LocationProvider}>
+				<${Router}
+					onRouteChange=${url => {
+						stack.push(url);
+					}}
+				>
+					<${Home} path="/" test=${test} />
+				<//>
+				<${() => {
+					loc = useLocation();
+				}} />
+				<//>
+				`;
+		}
+		render(
+			html`<${App} />`,
+			scratch
+		);
+
+		expect(scratch).toHaveProperty('textContent', 'Home');
+		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' }, expect.anything());
+		expect(loc).toMatchObject({
+			url: '/',
+			path: '/',
+			query: {},
+			route: expect.any(Function)
+		});
+
+		set('3')
+		await sleep(1);
+
+		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' }, expect.anything());
+		expect(loc).toMatchObject({
+			url: '/',
+			path: '/',
+			query: {},
+			route: expect.any(Function)
+		});
+		expect(scratch).toHaveProperty('textContent', 'Home');
 	});
 
 	it('should switch between synchronous routes', async () => {
