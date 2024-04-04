@@ -23,6 +23,38 @@ describe('Router', () => {
 		history.replaceState(null, null, '/');
 	});
 
+	it('should allow passing props to a route', async () => {
+		const Home = jest.fn(() => html`<h1>Home</h1>`);
+		const stack = [];
+		let loc;
+		render(
+			html`
+				<${LocationProvider}>
+					<${Router}
+						onRouteChange=${url => {
+							stack.push(url);
+						}}
+					>
+						<${Home} path="/" test="2" />
+					<//>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		expect(scratch).toHaveProperty('textContent', 'Home');
+		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' }, expect.anything());
+		expect(loc).toMatchObject({
+			url: '/',
+			path: '/',
+			query: {},
+			route: expect.any(Function)
+		});
+	});
+
 	it('should switch between synchronous routes', async () => {
 		const Home = jest.fn(() => html`<h1>Home</h1>`);
 		const Profiles = jest.fn(() => html`<h1>Profiles</h1>`);

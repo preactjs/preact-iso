@@ -128,7 +128,7 @@ export function Router(props) {
 
 		let p, d, m;
 		toChildArray(props.children).some(vnode => {
-			const matches = exec(rest, vnode.props.path, (m = { path: rest, query, params, rest: '' }));
+			const matches = exec(rest, vnode.props.path, (m = { ...vnode.props, path: rest, query, params, rest: '' }));
 			if (matches) return (p = cloneElement(vnode, m));
 			if (vnode.props.default) d = cloneElement(vnode, m);
 		});
