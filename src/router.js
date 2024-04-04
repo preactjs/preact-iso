@@ -133,6 +133,7 @@ export function Router(props) {
 		if (vnode.props.default) d = cloneElement(vnode, m);
 	});
 	cur.current =  h(RouteContext.Provider, { value: m }, pr || d);
+
 	// Reset previous children - if rendering succeeds synchronously, we shouldn't render the previous children.
 	const p = prev.current;
 	prev.current = null;

@@ -1,5 +1,6 @@
 import { jest, describe, it, beforeEach, expect } from '@jest/globals';
 import { h, render } from 'preact';
+import { useState } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
@@ -55,25 +56,31 @@ describe('Router', () => {
 		});
 	});
 
-	it.only('should allow updating props in a route', async () => {
+	it('should allow updating props in a route', async () => {
 		const Home = jest.fn(() => html`<h1>Home</h1>`);
 		const stack = [];
-		let loc;
-		render(
-			html`
+		let loc, set;
+
+		const App = () => {
+			const [test, setTest] = useState('2');
+			set = setTest;
+			return html`
 				<${LocationProvider}>
-					<${Router}
-						onRouteChange=${url => {
-							stack.push(url);
-						}}
-					>
-						<${Home} path="/" test="2" />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
+				<${Router}
+					onRouteChange=${url => {
+						stack.push(url);
+					}}
+				>
+					<${Home} path="/" test=${test} />
 				<//>
-			`,
+				<${() => {
+					loc = useLocation();
+				}} />
+				<//>
+				`;
+		}
+		render(
+			html`<${App} />`,
 			scratch
 		);
 
@@ -87,27 +94,9 @@ describe('Router', () => {
 		});
 
 		Home.mockReset();
+		set('3')
+		await sleep(1);
 
-		render(
-			html`
-				<${LocationProvider}>
-					<${Router}
-						onRouteChange=${url => {
-							stack.push(url);
-						}}
-					>
-						<${Home} path="/" test="3" />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
-			scratch
-		);
-
-		console.log(scratch.outerHTML)
-		expect(scratch).toHaveProperty('textContent', 'Home');
 		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' }, expect.anything());
 		expect(loc).toMatchObject({
 			url: '/',
@@ -115,6 +104,7 @@ describe('Router', () => {
 			query: {},
 			route: expect.any(Function)
 		});
+		expect(scratch).toHaveProperty('textContent', 'Home');
 	});
 
 	it('should switch between synchronous routes', async () => {
