@@ -93,7 +93,6 @@ describe('Router', () => {
 			route: expect.any(Function)
 		});
 
-		Home.mockReset();
 		set('3')
 		await sleep(1);
 
