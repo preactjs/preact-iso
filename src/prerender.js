@@ -1,6 +1,6 @@
 import { h, options, cloneElement } from 'preact';
+import { renderToStringAsync } from 'preact-render-to-string';
 
-let renderToStringAsync;
 let vnodeHook;
 
 const old = options.vnode;
@@ -15,7 +15,6 @@ options.vnode = vnode => {
  * @param {object} [options.props] Additional props to merge into the root JSX element
  */
 export default async function prerender(vnode, options) {
-    if (!renderToStringAsync) ({ renderToStringAsync } = await import('preact-render-to-string'));
 	options = options || {};
 
 	const props = options.props;
