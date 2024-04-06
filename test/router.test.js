@@ -306,6 +306,150 @@ describe('Router', () => {
 		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
 	});
 
+	it('should support onLoadStart/onLoadEnd/onRouteChange w/out navigation', async () => {
+		const route = name => html`
+			<h1>${name}</h1>
+			<p>hello</p>
+		`;
+		const A = jest.fn(groggy(() => route('A'), 1));
+		const loadStart = jest.fn();
+		const loadEnd = jest.fn();
+		const routeChange = jest.fn();
+		render(
+			html`
+				<${ErrorBoundary}>
+					<${LocationProvider}>
+						<${Router}
+							onLoadStart=${loadStart}
+							onLoadEnd=${loadEnd}
+							onRouteChange=${routeChange}
+						>
+							<${A} path="/" />
+						<//>
+					<//>
+				<//>
+			`,
+			scratch
+		);
+
+		expect(scratch).toHaveProperty('innerHTML', '');
+		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(loadStart).toHaveBeenCalledWith('/');
+		expect(loadEnd).not.toHaveBeenCalled();
+		expect(routeChange).not.toHaveBeenCalled();
+
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(loadStart).not.toHaveBeenCalled();
+		expect(loadEnd).toHaveBeenCalledWith('/');
+		expect(routeChange).not.toHaveBeenCalled();
+	});
+
+	it('should support onLoadStart/onLoadEnd/onRouteChange w/ navigation', async () => {
+		const route = name => html`
+			<h1>${name}</h1>
+			<p>hello</p>
+		`;
+		const A = jest.fn(groggy(() => route('A'), 1));
+		const B = jest.fn(groggy(() => route('B'), 1));
+		const loadStart = jest.fn();
+		const loadEnd = jest.fn();
+		const routeChange = jest.fn();
+		let loc;
+		render(
+			html`
+				<${ErrorBoundary}>
+					<${LocationProvider}>
+						<${Router}
+							onLoadStart=${loadStart}
+							onLoadEnd=${loadEnd}
+							onRouteChange=${routeChange}
+						>
+							<${A} path="/" />
+							<${B} path="/b" />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				<//>
+			`,
+			scratch
+		);
+
+		await sleep(10);
+
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
+
+		loc.route('/b');
+
+		await sleep(1);
+
+		expect(loadStart).toHaveBeenCalledWith('/b');
+		expect(loadEnd).not.toHaveBeenCalled();
+		expect(routeChange).not.toHaveBeenCalled();
+
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
+
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(loadStart).not.toHaveBeenCalled();
+		expect(loadEnd).toHaveBeenCalledWith('/b');
+		expect(routeChange).toHaveBeenCalledWith('/b');
+	});
+
+	it('should only call onLoadEnd once upon promise flush', async () => {
+		const route = name => html`
+			<h1>${name}</h1>
+			<p>hello</p>
+		`;
+		const A = jest.fn(groggy(() => route('A'), 1));
+		const loadEnd = jest.fn();
+		let set;
+
+		const App = () => {
+			const [test, setTest] = useState('1');
+			set = setTest;
+			return html`
+				<${ErrorBoundary}>
+					<${LocationProvider}>
+						<${Router}
+							onLoadEnd=${loadEnd}
+						>
+							<${A} path="/" />
+						<//>
+					<//>
+				<//>
+			`;
+		}
+		render(
+			html`<${App} />`,
+			scratch
+		);
+
+		await sleep(10);
+
+		loadEnd.mockClear();
+
+		set('2');
+		await sleep(1);
+
+		expect(loadEnd).not.toHaveBeenCalled();
+	});
+
 	describe('intercepted VS external links', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];

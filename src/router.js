@@ -186,12 +186,13 @@ export function Router(props) {
 		// The route is loaded and rendered.
 		if (prevRoute.current !== path) {
 			if (wasPush) scrollTo(0, 0);
-			if (props.onLoadEnd && isLoading.current) props.onLoadEnd(url);
 			if (props.onRouteChange) props.onRouteChange(url);
 
-			isLoading.current = false;
 			prevRoute.current = path;
 		}
+
+		if (props.onLoadEnd && isLoading.current) props.onLoadEnd(url);
+		isLoading.current = false;
 	}, [path, wasPush, c]);
 
 	// Note: curChildren MUST render first in order to set didSuspend & prev.
