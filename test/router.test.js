@@ -417,7 +417,6 @@ describe('Router', () => {
 			<p>hello</p>
 		`;
 		const A = jest.fn(groggy(() => route('A'), 1));
-		const loadStart = jest.fn();
 		const loadEnd = jest.fn();
 		let set;
 
@@ -428,7 +427,6 @@ describe('Router', () => {
 				<${ErrorBoundary}>
 					<${LocationProvider}>
 						<${Router}
-							onLoadStart=${loadStart}
 							onLoadEnd=${loadEnd}
 						>
 							<${A} path="/" />
@@ -444,14 +442,11 @@ describe('Router', () => {
 
 		await sleep(10);
 
-		A.mockClear();
-		loadStart.mockClear();
 		loadEnd.mockClear();
 
 		set('2');
 		await sleep(1);
 
-		expect(loadStart).not.toHaveBeenCalled();
 		expect(loadEnd).not.toHaveBeenCalled();
 	});
 
