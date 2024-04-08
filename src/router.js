@@ -117,14 +117,8 @@ export function Router(props) {
 	// was the most recent render successful (did not suspend):
 	const didSuspend = useRef();
 	didSuspend.current = false;
-
-	useMemo(() => {
-		// This hack prevents Preact from diffing when we swap `cur` to `prev`:
-		if (this.__v && this.__v.__k) this.__v.__k.reverse();
-
-		count.current++;
-		prev.current = cur.current;
-	}, [url]);
+	// has the route component changed
+	const routeChanged = useRef(false);
 
 	let pr, d, m;
 	toChildArray(props.children).some(vnode => {
@@ -132,9 +126,24 @@ export function Router(props) {
 		if (matches) return (pr = cloneElement(vnode, m));
 		if (vnode.props.default) d = cloneElement(vnode, m);
 	});
+
+	let incoming = pr || d;
+	useMemo(() => {
+		prev.current = cur.current;
+
+		// Only mark as an update if the route component changed.
+		const outgoing = prev.current && prev.current.props.children;
+		if (!outgoing || !incoming || incoming.type !== outgoing.type || incoming.props.component !== outgoing.props.component) {
+			// This hack prevents Preact from diffing when we swap `cur` to `prev`:
+			if (this.__v && this.__v.__k) this.__v.__k.reverse();
+			count.current++;
+			routeChanged.current = true;
+		}
+	}, [url]);
+
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
 	const isHydratingBool = cur.current && cur.current.__h;
-	cur.current =  h(RouteContext.Provider, { value: m }, pr || d);
+	cur.current = h(RouteContext.Provider, { value: m }, incoming);
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
@@ -220,7 +229,9 @@ export function Router(props) {
 	}, [path, wasPush, c]);
 
 	// Note: curChildren MUST render first in order to set didSuspend & prev.
-	return [h(RenderRef, { r: cur }), h(RenderRef, { r: prev })];
+	return routeChanged.current
+		? [h(RenderRef, { r: cur }), h(RenderRef, { r: prev })]
+		: h(RenderRef, { r: cur });
 }
 
 const MODE_HYDRATE = 1 << 5;
