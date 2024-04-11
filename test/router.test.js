@@ -3,7 +3,7 @@ import { h, hydrate, options, render } from 'preact';
 import { useState } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
-import lazy, { ErrorBoundary } from '../src/lazy.js';
+import { lazy, ErrorBoundary } from '../src/lazy.js';
 
 Object.defineProperty(window, 'scrollTo', { value() {} });
 
