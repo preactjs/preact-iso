@@ -2,8 +2,8 @@ import { render, hydrate as hydrativeRender } from 'preact';
 
 let initialized;
 
-/** @type {typeof render} */
-export default function hydrate(jsx, parent) {
+/** @type {typeof hydrativeRender} */
+export function hydrate(jsx, parent) {
 	if (typeof window === 'undefined') return;
 	let isodata = document.querySelector('script[type=isodata]');
 	// @ts-ignore-next

@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
-import lazy, { ErrorBoundary } from '../src/lazy.js';
+import { lazy, ErrorBoundary } from '../src/lazy.js';
 
 const expect = chai.expect;
 chai.use(sinonChai);
