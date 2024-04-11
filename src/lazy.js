@@ -10,7 +10,7 @@ options.__b = (vnode) => {
 	if (oldDiff) oldDiff(vnode);
 };
 
-export default function lazy(load) {
+export function lazy(load) {
 	let p, c;
 
 	const loadModule = () =>

@@ -14,7 +14,7 @@ options.vnode = vnode => {
  * @param {object} [options]
  * @param {object} [options.props] Additional props to merge into the root JSX element
  */
-export default async function prerender(vnode, options) {
+export async function prerender(vnode, options) {
 	options = options || {};
 
 	const props = options.props;

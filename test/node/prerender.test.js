@@ -2,7 +2,7 @@ import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 import { html } from 'htm/preact';
 
-import { default as prerender } from '../../src/prerender.js';
+import { prerender } from '../../src/prerender.js';
 
 test('extracts links', async () => {
 	const App = () => html`
