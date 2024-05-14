@@ -1,5 +1,5 @@
 import { jest, describe, it, beforeEach, expect } from '@jest/globals';
-import { h, hydrate, render } from 'preact';
+import { h, hydrate, options, render } from 'preact';
 import { useState } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
@@ -629,7 +629,7 @@ describe('hydration', () => {
 		history.replaceState(null, null, '/');
 	});
 
-	it('should wait for asynchronous routes', async () => {
+	it.only('should wait for asynchronous routes', async () => {
 		scratch.innerHTML = '<div><h1>A</h1><p>hello</p></div>';
 		const route = name => html`
 			<div>
@@ -663,13 +663,35 @@ describe('hydration', () => {
 
 		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
 		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		const oldOptionsVnode = options.__b;
+		let hasMatched = false;
+		options.__b = (vnode) => {
+			if (vnode.type === A && !hasMatched) {
+				hasMatched = true;
+				if (vnode.__ && vnode.__.__h) {
+					expect(vnode.__.__h).toBe(true)
+				} else if (vnode.__ && vnode.__.__u) {
+					expect(!!(vnode.__.__u & MODE_SUSPENDED)).toBe(true);
+					expect(!!(vnode.__.__u & MODE_HYDRATE)).toBe(true);
+				} else {
+					expect(true).toBe(false);
+				}
+			}
 
+			if (oldOptionsVnode) {
+				oldOptionsVnode(vnode);
+			}
+		}
 		A.mockClear();
-		await sleep(10);
 		await sleep(10);
 
 		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
 		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
 		expect(mutations).toHaveLength(0);
+
+		options.__b = oldOptionsVnode;
 	});
 })
+
+const MODE_HYDRATE = 1 << 5;
+const MODE_SUSPENDED = 1 << 7;
