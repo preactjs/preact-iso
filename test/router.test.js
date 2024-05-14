@@ -1,5 +1,5 @@
 import { jest, describe, it, beforeEach, expect } from '@jest/globals';
-import { h, render } from 'preact';
+import { h, hydrate, render } from 'preact';
 import { useState } from 'preact/hooks';
 import { html } from 'htm/preact';
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
@@ -616,3 +616,60 @@ describe('Router', () => {
 		replaceState.mockRestore();
 	});
 });
+
+describe('hydration', () => {
+	let scratch;
+	beforeEach(() => {
+		if (scratch) {
+			render(null, scratch);
+			scratch.remove();
+		}
+		scratch = document.createElement('scratch');
+		document.body.appendChild(scratch);
+		history.replaceState(null, null, '/');
+	});
+
+	it('should wait for asynchronous routes', async () => {
+		scratch.innerHTML = '<div><h1>A</h1><p>hello</p></div>';
+		const route = name => html`
+			<div>
+				<h1>${name}</h1>
+				<p>hello</p>
+			</div>
+		`;
+		const A = jest.fn(groggy(() => route('A'), 1));
+		let loc;
+		hydrate(
+			html`
+				<${ErrorBoundary}>
+					<${LocationProvider}>
+						<${Router}>
+							<${A} path="/" />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				<//>
+			`,
+			scratch
+		);
+
+		const mutations = [];
+		const mutationObserver = new MutationObserver((x) => {
+			mutations.push(...x)
+		});
+		mutationObserver.observe(scratch, { childList: true, subtree: true });
+
+		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
+		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+
+		A.mockClear();
+		await sleep(10);
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
+		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(mutations).toHaveLength(0);
+	});
+})

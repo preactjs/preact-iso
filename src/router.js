@@ -133,11 +133,13 @@ export function Router(props) {
 		if (vnode.props.default) d = cloneElement(vnode, m);
 	});
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
+	const isHydratingBool = cur.current && cur.current.__h;
 	cur.current =  h(RouteContext.Provider, { value: m }, pr || d);
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
-
+	} else if (isHydratingBool) {
+		cur.current.__h = true;
 	}
 
 	// Reset previous children - if rendering succeeds synchronously, we shouldn't render the previous children.
@@ -165,7 +167,13 @@ export function Router(props) {
 			// Successful route transition: un-suspend after a tick and stop rendering the old route:
 			prev.current = null;
 			if (cur.current) {
+				if (suspendedVNode.__h) {
+					// _hydrating
+					cur.current.__h = suspendedVNode.__h;
+				}
+
 				if (suspendedVNode.__u & MODE_SUSPENDED) {
+					// _flags
 					cur.current.__u |= MODE_SUSPENDED;
 				}
 
