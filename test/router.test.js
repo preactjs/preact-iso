@@ -773,7 +773,7 @@ describe('hydration', () => {
 		history.replaceState(null, null, '/');
 	});
 
-	it.only('should wait for asynchronous routes', async () => {
+	it('should wait for asynchronous routes', async () => {
 		scratch.innerHTML = '<div><h1>A</h1><p>hello</p></div>';
 		const route = name => html`
 			<div>
