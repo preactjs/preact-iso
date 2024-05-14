@@ -132,14 +132,22 @@ export function Router(props) {
 		if (matches) return (pr = cloneElement(vnode, m));
 		if (vnode.props.default) d = cloneElement(vnode, m);
 	});
+	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
+	const isHydratingBool = cur.current && cur.current.__h;
 	cur.current =  h(RouteContext.Provider, { value: m }, pr || d);
+	if (isHydratingSuspense) {
+		cur.current.__u |= MODE_HYDRATE;
+		cur.current.__u |= MODE_SUSPENDED;
+	} else if (isHydratingBool) {
+		cur.current.__h = true;
+	}
 
 	// Reset previous children - if rendering succeeds synchronously, we shouldn't render the previous children.
 	const p = prev.current;
 	prev.current = null;
 
 	// This borrows the _childDidSuspend() solution from compat.
-	this.__c = e => {
+	this.__c = (e, suspendedVNode) => {
 		// Mark the current render as having suspended:
 		didSuspend.current = true;
 
@@ -158,6 +166,22 @@ export function Router(props) {
 
 			// Successful route transition: un-suspend after a tick and stop rendering the old route:
 			prev.current = null;
+			if (cur.current) {
+				if (suspendedVNode.__h) {
+					// _hydrating
+					cur.current.__h = suspendedVNode.__h;
+				}
+
+				if (suspendedVNode.__u & MODE_SUSPENDED) {
+					// _flags
+					cur.current.__u |= MODE_SUSPENDED;
+				}
+
+				if (suspendedVNode.__u & MODE_HYDRATE) {
+					cur.current.__u |= MODE_HYDRATE;
+				}
+			}
+
 			RESOLVED.then(update);
 		});
 	};
@@ -198,6 +222,9 @@ export function Router(props) {
 	// Note: curChildren MUST render first in order to set didSuspend & prev.
 	return [h(RenderRef, { r: cur }), h(RenderRef, { r: prev })];
 }
+
+const MODE_HYDRATE = 1 << 5;
+const MODE_SUSPENDED = 1 << 7;
 
 // Lazily render a ref's current value:
 const RenderRef = ({ r }) => r.current;
