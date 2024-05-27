@@ -1,6 +1,6 @@
 {
 	"name": "preact-iso",
-	"version": "2.6.2",
+	"version": "2.6.3",
 	"type": "module",
 	"main": "src/index.js",
 	"module": "src/index.js",

@@ -789,6 +789,38 @@ describe('Router', () => {
 		expect(params).toMatchObject({ id: 'bar' });
 	});
 
+	it('should append params in nested routes', async () => {
+		let path, params;
+		const Inner = () => html`
+			<${Router}>
+				<${Route}
+					path="/:bar/:baz"
+					component=${() => {
+						({ path, params } = useRoute());
+						return null;
+					}}
+				/>
+			<//>
+		`;
+
+		render(
+			html`
+				<${LocationProvider}>
+					<${Router}>
+						<${Route} path="/foo/*" component=${Inner} />
+					<//>
+					<a href="/foo/bar/bob"></a>
+				<//>
+			`,
+			scratch
+		);
+
+		scratch.querySelector('a[href="/foo/bar/bob"]').click();
+		await sleep(20);
+		console.log(path);
+		expect(params).toMatchObject({ id: 'bar' });
+	});
+
 	it('should replace the current URL', async () => {
 		const pushState = jest.spyOn(history, 'pushState');
 		const replaceState = jest.spyOn(history, 'replaceState');
