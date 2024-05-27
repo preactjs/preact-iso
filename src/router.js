@@ -138,7 +138,7 @@ export function Router(props) {
 			if (this.__v && this.__v.__k) this.__v.__k.reverse();
 			count.current++;
 			routeChanged.current = true;
-		}
+		} else routeChanged.current = false;
 	}, [url]);
 
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
