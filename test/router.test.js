@@ -306,6 +306,63 @@ describe('Router', () => {
 		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
 	});
 
+	it('rerenders same-component routes rather than swap', async () => {
+		const A = jest.fn(groggy(() => html`<h1>a</h1>`, 1));
+		const B = jest.fn(groggy(({ sub }) => html`<h1>b/${sub}</h1>`, 1));
+		let loc, childrenLength;
+
+		const old = options.__c;
+		options.__c = (vnode, queue) => {
+			if (vnode.type === Router) {
+				childrenLength = vnode.__k.length;
+			}
+
+			if (old) old(vnode, queue);
+		}
+
+		render(
+			html`
+				<${ErrorBoundary}>
+					<${LocationProvider}>
+						<${Router}>
+							<${A} path="/" />
+							<${B} path="/b/:sub" />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				<//>
+			`,
+			scratch
+		);
+
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>a</h1>');
+		expect(childrenLength).toBe(2);
+
+		loc.route('/b/a');
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>b/a</h1>');
+		expect(childrenLength).toBe(2);
+
+		loc.route('/b/b');
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>b/b</h1>');
+		expect(childrenLength).toBe(1);
+
+		loc.route('/');
+		await sleep(10);
+
+		expect(scratch).toHaveProperty('innerHTML', '<h1>a</h1>');
+		expect(childrenLength).toBe(2);
+
+		options.__c = old;
+	});
+
 	it('should support onLoadStart/onLoadEnd/onRouteChange w/out navigation', async () => {
 		const route = name => html`
 			<h1>${name}</h1>
