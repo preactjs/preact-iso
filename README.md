@@ -6,59 +6,67 @@ Isomorphic async tools for Preact.
 - Generate static HTML for your app using `prerender()`, waiting for `lazy()` components and data dependencies.
 - Implement async-aware client and server-side routing using `<Router>`, including seamless async transitions.
 
-### `lazy.js`
+## Routing
 
-Make a lazily-loaded version of a Component.
-`lazy()` takes an async function that resolves to a Component, and returns a wrapper version of that Component. The wrapper component can be rendered right away, even though the component is only loaded the first time it is rendered.
+`preact-iso` offers a simple router for Preact with conventional and hooks-based APIs. The `<Router>` component is async-aware: when transitioning from one route to another, if the incoming route suspends (throws a Promise), the outgoing route is preserved until the new one becomes ready.
 
 ```js
-import { render } from 'preact';
-import { ErrorBoundary, lazy, Router } from 'preact-iso';
+import { ErrorBoundary, lazy, LocationProvider, Router, useLocation } from 'preact-iso';
 
-// Synchronous, not code-splitted:
-// import Home from './routes/home.js';
-// import Profile from './routes/profile.js';
-
-// Asynchronous, code-splitted:
+// Asynchronous (throws a promise)
 const Home = lazy(() => import('./routes/home.js'));
 const Profile = lazy(() => import('./routes/profile.js'));
+const Profiles = lazy(() => import('./routes/profiles.js'));
 
 const App = () => (
-	<ErrorBoundary>
-		<Router>
-			<Home path="/" />
-			<Profile path="/profile" />
-		</Router>
-	</ErrorBoundary>
+    <LocationProvider>
+        <ErrorBoundary>
+            <Router>
+                <Home path="/" />
+                <Profiles path="/profiles" />
+                <Profile path="/profiles/:id" />
+            </Router>
+        </ErrorBoundary>
+    </LocationProvider>
 );
-
-render(<App />, document.body);
 ```
 
-### `prerender.js`
+**Progressive Hydration:** When the app is hydrated on the client, the route (`Home` or `Profile` in this case) suspends. This causes hydration for that part of the page to be deferred until the route's `import()` is resolved, at which point that part of the page automatically finishes hydrating.
 
-`prerender()` renders a Virtual DOM tree to an HTML string using [preact-render-to-string](https://github.com/preactjs/preact-render-to-string). The difference is that it is asynchronous, and waits for any Promises thrown by components during rendering (Suspense-style) to resolve before returning the HTML. Nested promises also work, and the maximum depth can be controlled using the `maxDepth` option, which defaults to `10`.
+**Seamless Routing:** Switch switching between routes on the client, the Router is aware of asynchronous dependencies in routes. Instead of clearing the current route and showing a loading spinner while waiting for the next route (or its data), the router preserves the current route in-place until the incoming route has finished loading, then they are swapped.
 
-The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
+**Nested Routing:** Nested routes are supported by using multiple `Router` components. Partially matched routes end with a wildcard `/*` and the remaining value will be past to continue matching with if there are any further routes.
+
+## Prerendering
+
+`prerender()` renders a Virtual DOM tree to an HTML string using [`preact-render-to-string`](https://github.com/preactjs/preact-render-to-string). The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
+
+Primarily meant for use with prerendering via [`@preact/preset-vite`](https://github.com/preactjs/preset-vite) or other prerendering systems that share the API. If you're server-side rendering your app via any other method, you can use `preact-render-to-string` (specifically `renderToStringAsync()`) directly.
 
 ```js
-import { ErrorBoundary, lazy, prerender } from 'preact-iso';
+import { LocationProvider, ErrorBoundary, Router, lazy, prerender } from 'preact-iso';
 
 // Asynchronous (throws a promise)
 const Foo = lazy(() => import('./foo.js'));
 
 const App = () => (
-	<ErrorBoundary>
-		<Foo path="/" />
-	</ErrorBoundary>
+	<LocationProvider>
+        <ErrorBoundary>
+			<Router>
+				<Foo path="/" />
+			</Router>
+		</ErrorBoundary>
+	</LocationProvider>
 );
 
 const { html, links } = await prerender(<App />, { maxDepth: 10 });
 ```
 
-### `hydrate.js`
+Complimentary to this prerendering implementation is the `hydrate()` export. A thin wrapper around Preact's own `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page includes prerendered HTML from `prerender()`. This is especially useful for development, where you may not be prerendering your app. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
 
-`hydrate()` is a thin wrapper around Preact's hydrate() method. It performs hydration when the HTML for the current page includes pre-rendered output from `prerender()`. It falls back to plain rendering in any other cases, which is useful if you're not pre-rendering during development. This method also checks to make sure its running in a browser context before attempting any rendering - if not, it does nothing.
+However, it is just a simple utility method. By no means is it essential to use,  you can always use Preact's `hydrate` export directly.
+
+**Note:** The toggle to hydrate the document is partially based upon the presence of a `<script type="isodata"></script>` tag in the document. This is provided by the `prerender()` export, but if you're SSR'ing in any other fashion, this is something you need to be aware of, else, `hydrate()` will simply render the provided element instead.
 
 ```js
 import { hydrate } from 'preact-iso';
@@ -72,74 +80,153 @@ const App = () => (
 hydrate(<App />);
 ```
 
-### `router.js`
+---
 
-A simple router for Preact with conventional and hooks-based APIs. The `<Router>` component is async-aware: when transitioning from one route to another, if the incoming route suspends (throws a Promise), the outgoing route is preserved until the new one becomes ready.
+## API Docs
+
+### `LocationProvider`
+
+A context provider that provides the current location to its children. This is required for the router to function.
+
+### `Router`
+
+Props:
+
+ - `onRouteChange?: (url: string) => void` - Callback to be called when a route changes.
+ - `onLoadStart?: (url: string) => void` - Callback to be called when a route starts loading (i.e., if it suspends). This will not be called before navigations to sync routes or subsequent navigations to async routes.
+ - `onLoadEnd?: (url: string) => void` - Callback to be called after a route finishes loading (i.e., if it suspends). This will not be called after navigations to sync routes or subsequent navigations to async routes.
 
 ```js
-import { ErrorBoundary, lazy, LocationProvider, Router, useLocation } from 'preact-iso';
-
-// Asynchronous (throws a promise)
-const Home = lazy(() => import('./routes/home.js'));
-const Profile = lazy(() => import('./routes/profile.js'));
-const Profiles = lazy(() => import('./routes/profiles.js'));
+import { LocationProvider, Router } from 'preact-iso';
 
 const App = () => (
 	<LocationProvider>
-		<ErrorBoundary>
-			<Router>
-				<Home path="/" />
-				<Profiles path="/profiles" />
-				<Profile path="/profiles/:id" />
-			</Router>
-		</ErrorBoundary>
+		<Router
+			onRouteChange={url => console.log('Route changed to', url)}
+			onLoadStart={url => console.log('Starting to load', url)}
+			onLoadEnd={url => console.log('Finished loading', url)}
+		>
+			<Home path="/" />
+			<Profile path="/profile" />
+		</Router>
 	</LocationProvider>
 );
 ```
 
-During prerendering, the generated HTML includes our full `<Home>` and `<Profiles>` component output because it waits for the `lazy()`-wrapped `import()` to resolve.
+### `Route`
 
-You can use the `useRoute` hook to get information of the route you are currently on.
+There are two ways to define routes using `preact-iso`:
 
-**Progressive Hydration:** When the app is hydrated on the client, the route (`Home` or `Profile` in this case) suspends. This causes hydration for that part of the page to be deferred until the route's `import()` is resolved, at which point that part of the page automatically finishes hydrating.
+1. Append router params to the route components directly: `<Home path="/" />`
+2. Use the `Route` component instead: `<Route path="/" component={Home} />`
 
-**Seamless Routing:** Switch switching between routes on the client, the Router is aware of asynchronous dependencies in routes. Instead of clearing the current route and showing a loading spinner while waiting for the next route (or its data), the router preserves the current route in-place until the incoming route has finished loading, then they are swapped.
+Appending arbitrary props to components not unreasonable in JavaScript, as JS is a dynamic langauge that's perfectly happy to support dynamic & arbitrary interfaces. However, TypeScript, which many of us use even when writing JS through TS's language server, is not exactly a fan of this sort of interface design.
 
-### Nested Routing
+TS does not (yet) allow for overriding a child's props from the parent component so we cannot, for instance, define `<Home>` as taking no props _unless_ it's a child of a `<Router>`, in which case it can have a `path` prop. This leaves us with a bit of a dilemma: either we define all of our routes as taking `path` props so we don't see TS errors when writing `<Home path="/" />` or we create wrapper components to handle the route definitions.
 
-Nested routes are supported by using multiple `Router` components. Partially matched routes end with a wildcard `/*` and the remaining value will be past to continue matching with if there are any further routes.
+While `<Home path="/" />` is completely equivilant to `<Route path="/" component={Home} />`, TS users may find the latter preferable. 
 
-```jsx
-import { ErrorBoundary, LocationProvider, Router, Route } from 'preact-iso';
-
-function ProfileA() {
-	return <h2>A</h2>;
-}
-
-function ProfileB() {
-	return <h2>B</h2>;
-}
-
-function Profile() {
-	return (
-		<div>
-			<h1>Profile</h1>
-			<ErrorBoundary>
-				<Router>
-					<Route path="/a" component={ProfileA} />
-					<Route path="/b" component={ProfileB} />
-				</Router>
-			</ErrorBoundary>
-		</div>
-	);
-}
+```js
+import { LocationProvider, Router, Route } from 'preact-iso';
 
 const App = () => (
 	<LocationProvider>
-		<ErrorBoundary>
+		<Router>
+			{/* Both of these are equivalent */}
+			<Home path="/" />
+			<Route path="/" component={Home} />
+
+			<Profile path="/profile" />
+			<NotFound default />
+		</Router>
+	</LocationProvider>
+);
+```
+
+Props for any route component:
+
+ - `path: string` - The path to match (read on)
+ - `default?: boolean` - If set, this route is a fallback/default route to be used when nothing else matches
+
+Specific to the `Route` component:
+
+ - `component: AnyComponent` - The component to render when the route matches
+
+#### Path Segment Matching
+
+Paths are matched using a simple string matching algorithm. The following features may be used:
+
+ - `:param` - Matches any URL segment (can later extract this value from `useRoute()`)
+   - `/profile/:id` will match `/profile/123` and `/profile/abc`
+   - `/profile/:id?` will match `/profile` and `/profile/123`
+ - `*` - Matches any number of URL segments
+   - `/profile/*` will match `/profile`, `/profile/123`, `/profile/123/abc`, etc.
+
+These can then be composed to create more complex routes:
+
+ - `/profile/:id/*` will match `/profile/123`, `/profile/123/abc`, `/profile/123/abc/def`, etc.
+
+
+### `useLocation`
+
+A hook to work with the `LocationProvider` to access location context.
+
+Props:
+
+ - `url: string` - *Redundant* - The current path
+ - `path: string` - The current path
+ - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+ - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route
+
+### `useRoute`
+
+A hook to access current route information. Unlike `useLocation`, this hook only works within `<Router>` components.
+
+Props:
+
+ - `path: string` - The current path
+ - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+ - `params: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
+
+### `lazy`
+
+Make a lazily-loaded version of a Component.
+`lazy()` takes an async function that resolves to a Component, and returns a wrapper version of that Component. The wrapper component can be rendered right away, even though the component is only loaded the first time it is rendered.
+
+```js
+import { lazy, LocationProvider, Router } from 'preact-iso';
+
+// Synchronous, not code-splitted:
+// import Home from './routes/home.js';
+// import Profile from './routes/profile.js';
+
+// Asynchronous, code-splitted:
+const Home = lazy(() => import('./routes/home.js'));
+const Profile = lazy(() => import('./routes/profile.js'));
+
+const App = () => (
+	<LocationProvider>
+		<Router>
+			<Home path="/" />
+			<Profile path="/profile" />
+		</Router>
+	</LocationProvider>
+);
+```
+
+### `ErrorBoundary`
+
+A simple component to catch errors in the component tree below it.
+
+```js
+import { LocationProvider, ErrorBoundary, Router } from 'preact-iso';
+
+const App = () => (
+	<LocationProvider>
+		<ErrorBoundary onError={(e) => console.log(e)}>
 			<Router>
-				<Route path="/" component={Home} />
-				<Route path="/profiles/*" component={Profile} />
+				<Home path="/" />
+				<Profile path="/profile" />
 			</Router>
 		</ErrorBoundary>
 	</LocationProvider>
