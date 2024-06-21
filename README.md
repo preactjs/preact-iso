@@ -120,11 +120,11 @@ There are two ways to define routes using `preact-iso`:
 1. Append router params to the route components directly: `<Home path="/" />`
 2. Use the `Route` component instead: `<Route path="/" component={Home} />`
 
-Appending arbitrary props to components not unreasonable in JavaScript, as JS is a dynamic langauge that's perfectly happy to support dynamic & arbitrary interfaces. However, TypeScript, which many of us use even when writing JS through TS's language server, is not exactly a fan of this sort of interface design.
+Appending arbitrary props to components not unreasonable in JavaScript, as JS is a dynamic language that's perfectly happy to support dynamic & arbitrary interfaces. However, TypeScript, which many of us use even when writing JS through TS's language server, is not exactly a fan of this sort of interface design.
 
 TS does not (yet) allow for overriding a child's props from the parent component so we cannot, for instance, define `<Home>` as taking no props _unless_ it's a child of a `<Router>`, in which case it can have a `path` prop. This leaves us with a bit of a dilemma: either we define all of our routes as taking `path` props so we don't see TS errors when writing `<Home path="/" />` or we create wrapper components to handle the route definitions.
 
-While `<Home path="/" />` is completely equivilant to `<Route path="/" component={Home} />`, TS users may find the latter preferable. 
+While `<Home path="/" />` is completely equivalent to `<Route path="/" component={Home} />`, TS users may find the latter preferable. 
 
 ```js
 import { LocationProvider, Router, Route } from 'preact-iso';
