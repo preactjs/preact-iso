@@ -46,8 +46,8 @@ export const exec = (url, route, matches) => {
 		// segment match:
 		if (!m && param == val) continue;
 		// /foo/* match
-		if (!m && val && flag == '*') {
-			matches.rest = '/' + url.slice(i).map(decodeURIComponent).join('/');
+		if (!m && flag == '*') {
+			if (val) matches.rest = '/' + url.slice(i).map(decodeURIComponent).join('/');
 			break;
 		}
 		// segment mismatch / missing required field:
