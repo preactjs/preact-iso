@@ -22,6 +22,14 @@ describe('match', () => {
 		expect(inaccurateResult).toEqual(undefined);
 	});
 
+	it('Param route - no rest', () => {
+		const accurateResult = execPath('/user', '/user/*');
+		expect(accurateResult).toEqual({ path: '/user', params: {}, query: {} });
+
+		const inaccurateResult = execPath('/', '/user/*');
+		expect(inaccurateResult).toEqual(undefined);
+	});
+
 	it('Param rest segment', () => {
 		const accurateResult = execPath('/user/foo', '/user/*');
 		expect(accurateResult).toEqual({ path: '/user/foo', params: {}, query: {}, rest: '/foo' });
