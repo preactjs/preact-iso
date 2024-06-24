@@ -182,7 +182,7 @@ Props:
  - `url: string` - *Redundant* - The current path
  - `path: string` - The current path
  - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
- - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route
+ - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
 
 ### `useRoute`
 
