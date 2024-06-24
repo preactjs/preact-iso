@@ -68,7 +68,7 @@ const App = () => (
 const { html, links } = await prerender(<App />, { maxDepth: 10 });
 ```
 
-Complimentary to this prerendering implementation is the `hydrate()` export. A thin wrapper around Preact's own `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page includes prerendered HTML from `prerender()`. This is especially useful for development, where you may not be prerendering your app. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
+Complimentary to this prerendering implementation is the `hydrate()` export: a thin wrapper around Preact's own `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page includes prerendered HTML from `prerender()`. This is especially useful for development, where you may not be prerendering your app. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
 
 However, it is just a simple utility method. By no means is it essential to use,  you can always use Preact's `hydrate` export directly.
 
@@ -126,7 +126,7 @@ There are two ways to define routes using `preact-iso`:
 1. Append router params to the route components directly: `<Home path="/" />`
 2. Use the `Route` component instead: `<Route path="/" component={Home} />`
 
-Appending arbitrary props to components not unreasonable in JavaScript, as JS is a dynamic language that's perfectly happy to support dynamic & arbitrary interfaces. However, TypeScript, which many of us use even when writing JS through TS's language server, is not exactly a fan of this sort of interface design.
+Appending arbitrary props to components not unreasonable in JavaScript, as JS is a dynamic language that's perfectly happy to support dynamic & arbitrary interfaces. However, TypeScript, which many of us use even when writing JS (via TS's language server), is not exactly a fan of this sort of interface design.
 
 TS does not (yet) allow for overriding a child's props from the parent component so we cannot, for instance, define `<Home>` as taking no props _unless_ it's a child of a `<Router>`, in which case it can have a `path` prop. This leaves us with a bit of a dilemma: either we define all of our routes as taking `path` props so we don't see TS errors when writing `<Home path="/" />` or we create wrapper components to handle the route definitions.
 
