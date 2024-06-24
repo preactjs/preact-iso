@@ -40,3 +40,17 @@ export default async function prerender(vnode, options) {
 		vnodeHook = null;
 	}
 }
+
+/**
+ * Update `location` to current URL so routers can use things like `location.pathname`
+ *
+ * @param {string} path - current URL path
+ */
+export function locationStub(path) {
+	const u = new URL(path, 'http://localhost');
+	for (const i in u) {
+		try {
+			globalThis.location[i] = String(u[i]);
+		} catch {}
+	}
+}
