@@ -11,20 +11,26 @@ Isomorphic async tools for Preact.
 `preact-iso` offers a simple router for Preact with conventional and hooks-based APIs. The `<Router>` component is async-aware: when transitioning from one route to another, if the incoming route suspends (throws a Promise), the outgoing route is preserved until the new one becomes ready.
 
 ```js
-import { ErrorBoundary, lazy, LocationProvider, Router, useLocation } from 'preact-iso';
+import { lazy, LocationProvider, ErrorBoundary, Router, Route } from 'preact-iso';
+
+// Synchronous
+import Home from './routes/home.js';
 
 // Asynchronous (throws a promise)
-const Home = lazy(() => import('./routes/home.js'));
-const Profile = lazy(() => import('./routes/profile.js'));
 const Profiles = lazy(() => import('./routes/profiles.js'));
+const Profile = lazy(() => import('./routes/profile.js'));
+const NotFound = lazy(() => import('./routes/_404.js'));
 
 const App = () => (
     <LocationProvider>
         <ErrorBoundary>
             <Router>
                 <Home path="/" />
-                <Profiles path="/profiles" />
-                <Profile path="/profiles/:id" />
+                {/* Alternative route component for better TS support */}
+                <Route path="/profiles" component={Profiles} />
+                <Route path="/profiles/:id" component={Profile} />
+                {/* `default` prop indicates a fallback route. Useful for 404 pages */}
+                <NotFound default />
             </Router>
         </ErrorBoundary>
     </LocationProvider>
