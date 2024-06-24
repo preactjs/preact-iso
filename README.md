@@ -162,15 +162,15 @@ Specific to the `Route` component:
 
 Paths are matched using a simple string matching algorithm. The following features may be used:
 
- - `:param` - Matches any URL segment (can later extract this value from `useRoute()`)
+ - `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
    - `/profile/:id` will match `/profile/123` and `/profile/abc`
    - `/profile/:id?` will match `/profile` and `/profile/123`
- - `*` - Matches any number of URL segments
-   - `/profile/*` will match `/profile`, `/profile/123`, `/profile/123/abc`, etc.
+ - `*` - Matches one or more URL segments
+   - `/profile/*` will match `/profile/123`, `/profile/123/abc`, etc.
 
 These can then be composed to create more complex routes:
 
- - `/profile/:id/*` will match `/profile/123`, `/profile/123/abc`, `/profile/123/abc/def`, etc.
+ - `/profile/:id/*` will match `/profile/123/abc`, `/profile/123/abc/def`, etc.
 
 
 ### `useLocation`
