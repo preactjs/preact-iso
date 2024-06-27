@@ -26,7 +26,7 @@ const App = () => (
         <ErrorBoundary>
             <Router>
                 <Home path="/" />
-                {/* Alternative route component for better TS support */}
+                {/* Alternative dedicated route component for better TS support */}
                 <Route path="/profiles" component={Profiles} />
                 <Route path="/profiles/:id" component={Profile} />
                 {/* `default` prop indicates a fallback route. Useful for 404 pages */}
@@ -47,10 +47,10 @@ const App = () => (
 
 `prerender()` renders a Virtual DOM tree to an HTML string using [`preact-render-to-string`](https://github.com/preactjs/preact-render-to-string). The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
 
-Primarily meant for use with prerendering via [`@preact/preset-vite`](https://github.com/preactjs/preset-vite) or other prerendering systems that share the API. If you're server-side rendering your app via any other method, you can use `preact-render-to-string` (specifically `renderToStringAsync()`) directly.
+Primarily meant for use with prerendering via [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration) or other prerendering systems that share the API. If you're server-side rendering your app via any other method, you can use `preact-render-to-string` (specifically `renderToStringAsync()`) directly.
 
 ```js
-import { LocationProvider, ErrorBoundary, Router, lazy, prerender } from 'preact-iso';
+import { LocationProvider, ErrorBoundary, Router, lazy, prerender as ssr } from 'preact-iso';
 
 // Asynchronous (throws a promise)
 const Foo = lazy(() => import('./foo.js'));
@@ -65,25 +65,11 @@ const App = () => (
 	</LocationProvider>
 );
 
-const { html, links } = await prerender(<App />, { maxDepth: 10 });
-```
-
-Complimentary to this prerendering implementation is the `hydrate()` export: a thin wrapper around Preact's own `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page includes prerendered HTML from `prerender()`. This is especially useful for development, where you may not be prerendering your app. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
-
-However, it is just a simple utility method. By no means is it essential to use,  you can always use Preact's `hydrate` export directly.
-
-**Note:** The toggle to hydrate the document is partially based upon the presence of a `<script type="isodata"></script>` tag in the document. This is provided by the `prerender()` export, but if you're SSR'ing in any other fashion, this is something you need to be aware of, else, `hydrate()` will simply render the provided element instead.
-
-```js
-import { hydrate } from 'preact-iso';
-
-const App = () => (
-	<div class="app">
-		<h1>Hello World</h1>
-	</div>
-);
-
 hydrate(<App />);
+
+export async function prerender(data) {
+	return await ssr(<App />);
+}
 ```
 
 ---
@@ -130,7 +116,7 @@ Appending arbitrary props to components not unreasonable in JavaScript, as JS is
 
 TS does not (yet) allow for overriding a child's props from the parent component so we cannot, for instance, define `<Home>` as taking no props _unless_ it's a child of a `<Router>`, in which case it can have a `path` prop. This leaves us with a bit of a dilemma: either we define all of our routes as taking `path` props so we don't see TS errors when writing `<Home path="/" />` or we create wrapper components to handle the route definitions.
 
-While `<Home path="/" />` is completely equivalent to `<Route path="/" component={Home} />`, TS users may find the latter preferable. 
+While `<Home path="/" />` is completely equivalent to `<Route path="/" component={Home} />`, TS users may find the latter preferable.
 
 ```js
 import { LocationProvider, Router, Route } from 'preact-iso';
@@ -237,4 +223,51 @@ const App = () => (
 		</ErrorBoundary>
 	</LocationProvider>
 );
+```
+
+### `hydrate`
+
+A thin wrapper around Preact's `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page has been prerendered. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
+
+Pairs with the `prerender()` function.
+
+```js
+import { hydrate } from 'preact-iso';
+
+const App = () => (
+	<div class="app">
+		<h1>Hello World</h1>
+	</div>
+);
+
+hydrate(<App />);
+```
+
+However, it is just a simple utility method. By no means is it essential to use, you can always use Preact's `hydrate` export directly.
+
+### `prerender`
+
+Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
+
+Pairs primarily with [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration)'s prerendering.
+
+```js
+import { LocationProvider, ErrorBoundary, Router, lazy, prerender } from 'preact-iso';
+
+// Asynchronous (throws a promise)
+const Foo = lazy(() => import('./foo.js'));
+const Bar = lazy(() => import('./bar.js'));
+
+const App = () => (
+    <LocationProvider>
+        <ErrorBoundary>
+            <Router>
+                <Foo path="/" />
+                <Bar path="/bar" />
+            </Router>
+        </ErrorBoundary>
+    </LocationProvider>
+);
+
+const { html, links } = await prerender(<App />);
 ```
