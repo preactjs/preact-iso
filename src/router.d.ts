@@ -2,11 +2,13 @@ import { AnyComponent, FunctionComponent, VNode } from 'preact';
 
 export const LocationProvider: FunctionComponent;
 
+type NestedArray<T> = Array<T | NestedArray<T>>;
+
 export function Router(props: {
 	onRouteChange?: (url: string) => void;
 	onLoadEnd?: (url: string) => void;
 	onLoadStart?: (url: string) => void;
-	children?: VNode[];
+	children?: NestedArray<VNode>;
 }): VNode;
 
 interface LocationHook {
