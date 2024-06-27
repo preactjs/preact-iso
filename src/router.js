@@ -70,7 +70,7 @@ export function LocationProvider(props) {
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
-		const path = u.pathname.replace(/(.)\/$/g, '$1');
+		const path = u.pathname.replace(/\/+$/g, '') || '/';
 		// @ts-ignore-next
 		return {
 			url,
