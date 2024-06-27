@@ -1,5 +1,7 @@
 # preact-iso
 
+[![Preact Slack Community](https://img.shields.io/badge/slack-Preact%20Slack%20Community-blue?logo=slack)](https://chat.preactjs.com/)
+
 Isomorphic async tools for Preact.
 
 -   Lazy-load components using `lazy()` and `<ErrorBoundary>`, which also enables progressive hydration.
@@ -298,3 +300,7 @@ const App = () => (
 
 const { html, links } = await prerender(<App />);
 ```
+
+## License
+
+[MIT](./LICENSE)
