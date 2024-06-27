@@ -2,9 +2,9 @@
 
 Isomorphic async tools for Preact.
 
-- Lazy-load components using `lazy()` and `<ErrorBoundary>`, which also enables progressive hydration.
-- Generate static HTML for your app using `prerender()`, waiting for `lazy()` components and data dependencies.
-- Implement async-aware client and server-side routing using `<Router>`, including seamless async transitions.
+-   Lazy-load components using `lazy()` and `<ErrorBoundary>`, which also enables progressive hydration.
+-   Generate static HTML for your app using `prerender()`, waiting for `lazy()` components and data dependencies.
+-   Implement async-aware client and server-side routing using `<Router>`, including seamless async transitions.
 
 ## Routing
 
@@ -22,18 +22,18 @@ const Profile = lazy(() => import('./routes/profile.js'));
 const NotFound = lazy(() => import('./routes/_404.js'));
 
 const App = () => (
-    <LocationProvider>
-        <ErrorBoundary>
-            <Router>
-                <Home path="/" />
-                {/* Alternative dedicated route component for better TS support */}
-                <Route path="/profiles" component={Profiles} />
-                <Route path="/profiles/:id" component={Profile} />
-                {/* `default` prop indicates a fallback route. Useful for 404 pages */}
-                <NotFound default />
-            </Router>
-        </ErrorBoundary>
-    </LocationProvider>
+	<LocationProvider>
+		<ErrorBoundary>
+			<Router>
+				<Home path="/" />
+				{/* Alternative dedicated route component for better TS support */}
+				<Route path="/profiles" component={Profiles} />
+				<Route path="/profiles/:id" component={Profile} />
+				{/* `default` prop indicates a fallback route. Useful for 404 pages */}
+				<NotFound default />
+			</Router>
+		</ErrorBoundary>
+	</LocationProvider>
 );
 ```
 
@@ -57,7 +57,7 @@ const Foo = lazy(() => import('./foo.js'));
 
 const App = () => (
 	<LocationProvider>
-        <ErrorBoundary>
+		<ErrorBoundary>
 			<Router>
 				<Foo path="/" />
 			</Router>
@@ -80,13 +80,25 @@ export async function prerender(data) {
 
 A context provider that provides the current location to its children. This is required for the router to function.
 
+Typically, you would wrap your entire app in this provider:
+
+```js
+import { LocationProvider } from 'preact-iso';
+
+const App = () => (
+    <LocationProvider>
+        {/* Your app here */}
+    </LocationProvider>
+);
+```
+
 ### `Router`
 
 Props:
 
- - `onRouteChange?: (url: string) => void` - Callback to be called when a route changes.
- - `onLoadStart?: (url: string) => void` - Callback to be called when a route starts loading (i.e., if it suspends). This will not be called before navigations to sync routes or subsequent navigations to async routes.
- - `onLoadEnd?: (url: string) => void` - Callback to be called after a route finishes loading (i.e., if it suspends). This will not be called after navigations to sync routes or subsequent navigations to async routes.
+-   `onRouteChange?: (url: string) => void` - Callback to be called when a route changes.
+-   `onLoadStart?: (url: string) => void` - Callback to be called when a route starts loading (i.e., if it suspends). This will not be called before navigations to sync routes or subsequent navigations to async routes.
+-   `onLoadEnd?: (url: string) => void` - Callback to be called after a route finishes loading (i.e., if it suspends). This will not be called after navigations to sync routes or subsequent navigations to async routes.
 
 ```js
 import { LocationProvider, Router } from 'preact-iso';
@@ -94,9 +106,9 @@ import { LocationProvider, Router } from 'preact-iso';
 const App = () => (
 	<LocationProvider>
 		<Router
-			onRouteChange={url => console.log('Route changed to', url)}
-			onLoadStart={url => console.log('Starting to load', url)}
-			onLoadEnd={url => console.log('Finished loading', url)}
+			onRouteChange={(url) => console.log('Route changed to', url)}
+			onLoadStart={(url) => console.log('Starting to load', url)}
+			onLoadEnd={(url) => console.log('Finished loading', url)}
 		>
 			<Home path="/" />
 			<Profile path="/profile" />
@@ -106,6 +118,7 @@ const App = () => (
 ```
 
 ### `Route`
+
 
 There are two ways to define routes using `preact-iso`:
 
@@ -137,52 +150,53 @@ const App = () => (
 
 Props for any route component:
 
- - `path: string` - The path to match (read on)
- - `default?: boolean` - If set, this route is a fallback/default route to be used when nothing else matches
+-   `path: string` - The path to match (read on)
+-   `default?: boolean` - If set, this route is a fallback/default route to be used when nothing else matches
 
 Specific to the `Route` component:
 
- - `component: AnyComponent` - The component to render when the route matches
+-   `component: AnyComponent` - The component to render when the route matches
 
 #### Path Segment Matching
 
 Paths are matched using a simple string matching algorithm. The following features may be used:
 
- - `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
-   - `/profile/:id` will match `/profile/123` and `/profile/abc`
-   - `/profile/:id?` will match `/profile` and `/profile/123`
- - `*` - Matches one or more URL segments
-   - `/profile/*` will match `/profile/123`, `/profile/123/abc`, etc.
+-   `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
+    -   `/profile/:id` will match `/profile/123` and `/profile/abc`
+    -   `/profile/:id?` will match `/profile` and `/profile/123`
+-   `*` - Matches one or more URL segments
+    -   `/profile/*` will match `/profile/123`, `/profile/123/abc`, etc.
 
 These can then be composed to create more complex routes:
 
- - `/profile/:id/*` will match `/profile/123/abc`, `/profile/123/abc/def`, etc.
-
+-   `/profile/:id/*` will match `/profile/123/abc`, `/profile/123/abc/def`, etc.
 
 ### `useLocation`
 
 A hook to work with the `LocationProvider` to access location context.
 
-Props:
+Returns an object with the following properties:
 
- - `url: string` - *Redundant* - The current path
- - `path: string` - The current path
- - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
- - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
+-   `url: string` - _Redundant_ - The current path
+-   `path: string` - The current path
+-   `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+-   `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
 
 ### `useRoute`
 
 A hook to access current route information. Unlike `useLocation`, this hook only works within `<Router>` components.
 
-Props:
+Returns an object with the following properties:
 
- - `path: string` - The current path
- - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
- - `params: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
+
+-   `path: string` - The current path
+-   `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+-   `params: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
 
 ### `lazy`
 
 Make a lazily-loaded version of a Component.
+
 `lazy()` takes an async function that resolves to a Component, and returns a wrapper version of that Component. The wrapper component can be rendered right away, even though the component is only loaded the first time it is rendered.
 
 ```js
@@ -210,6 +224,10 @@ const App = () => (
 
 A simple component to catch errors in the component tree below it.
 
+Props:
+
+-   `onError?: (error: Error) => void` - A callback to be called when an error is caught
+
 ```js
 import { LocationProvider, ErrorBoundary, Router } from 'preact-iso';
 
@@ -231,6 +249,11 @@ A thin wrapper around Preact's `hydrate` export, it switches between hydrating a
 
 Pairs with the `prerender()` function.
 
+Params:
+
+-   `jsx: ComponentChild` - The JSX element or component to render
+-   `parent?: Element | Document | ShadowRoot | DocumentFragment` - The parent element to render into. Defaults to `document.body` if not provided.
+
 ```js
 import { hydrate } from 'preact-iso';
 
@@ -251,6 +274,10 @@ Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. Th
 
 Pairs primarily with [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration)'s prerendering.
 
+Params:
+
+-   `jsx: ComponentChild` - The JSX element or component to render
+
 ```js
 import { LocationProvider, ErrorBoundary, Router, lazy, prerender } from 'preact-iso';
 
@@ -259,14 +286,14 @@ const Foo = lazy(() => import('./foo.js'));
 const Bar = lazy(() => import('./bar.js'));
 
 const App = () => (
-    <LocationProvider>
-        <ErrorBoundary>
-            <Router>
-                <Foo path="/" />
-                <Bar path="/bar" />
-            </Router>
-        </ErrorBoundary>
-    </LocationProvider>
+	<LocationProvider>
+		<ErrorBoundary>
+			<Router>
+				<Foo path="/" />
+				<Bar path="/bar" />
+			</Router>
+		</ErrorBoundary>
+	</LocationProvider>
 );
 
 const { html, links } = await prerender(<App />);
