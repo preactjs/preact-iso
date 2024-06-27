@@ -13,3 +13,5 @@ export default function prerender(
 	vnode: VNode,
 	options?: PrerenderOptions
 ): Promise<PrerenderResult>;
+
+export function locationStub(path: string): void;
