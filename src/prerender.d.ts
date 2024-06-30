@@ -9,7 +9,7 @@ export interface PrerenderResult {
 	links?: Set<string>
 }
 
-export default function prerender(
+export function prerender(
 	vnode: VNode,
 	options?: PrerenderOptions
 ): Promise<PrerenderResult>;

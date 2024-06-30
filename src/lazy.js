@@ -1,7 +1,7 @@
 import { h, options } from 'preact';
 import { useState, useRef } from 'preact/hooks';
 
-export default function lazy(load) {
+export function lazy(load) {
 	let p, c;
 	return props => {
 		const [, update] = useState(0);
