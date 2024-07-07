@@ -24,6 +24,27 @@ describe('Router', () => {
 		history.replaceState(null, null, '/');
 	});
 
+	it('should strip trailing slashes from path', async () => {
+		let loc;
+		render(
+			html`
+				<${LocationProvider} url=${'/a/'}>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		expect(loc).toMatchObject({
+			url: '/a/',
+			path: '/a',
+			query: {},
+			route: expect.any(Function)
+		});
+	});
+
 	it('should allow passing props to a route', async () => {
 		const Home = jest.fn(() => html`<h1>Home</h1>`);
 		const stack = [];
