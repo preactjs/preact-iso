@@ -19,11 +19,12 @@ interface LocationHook {
 }
 export const useLocation: () => LocationHook;
 
-export const useRoute: () => {
+interface RouteHook {
 	path: string;
 	query: Record<string, string>;
 	params: Record<string, string>;
-};
+}
+export const useRoute: () => RouteHook;
 
 interface RoutableProps {
 	path?: string;

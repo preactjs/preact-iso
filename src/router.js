@@ -1,6 +1,12 @@
 import { h, createContext, cloneElement, toChildArray } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
+/**
+ * @template T
+ * @typedef {import('preact').RefObject<T>} RefObject
+ * @typedef {import('./internal.d.ts').VNode} VNode
+ */
+
 let push;
 const UPDATE = (state, url) => {
 	push = undefined;
@@ -96,6 +102,7 @@ export function LocationProvider(props) {
 }
 
 const RESOLVED = Promise.resolve();
+/** @this {import('./internal.d.ts').AugmentedComponent} */
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
@@ -107,27 +114,28 @@ export function Router(props) {
 	// Monotonic counter used to check if an un-suspending route is still the current route:
 	const count = useRef(0);
 	// The current route:
-	const cur = useRef();
+	const cur = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// Previous route (if current route is suspended):
-	const prev = useRef();
+	const prev = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// A not-yet-hydrated DOM root to remove once we commit:
-	const pendingBase = useRef();
+	const pendingBase = /** @type {RefObject<Element | Text>} */ (useRef());
 	// has this component ever successfully rendered without suspending:
 	const hasEverCommitted = useRef(false);
 	// was the most recent render successful (did not suspend):
-	const didSuspend = useRef();
+	const didSuspend = /** @type {RefObject<boolean>} */ (useRef());
 	didSuspend.current = false;
 	// has the route component changed
 	const routeChanged = useRef(false);
 
-	let pr, d, m;
-	toChildArray(props.children).some(vnode => {
-		const matches = exec(rest, vnode.props.path, (m = { ...vnode.props, path: rest, query, params, rest: '' }));
-		if (matches) return (pr = cloneElement(vnode, m));
-		if (vnode.props.default) d = cloneElement(vnode, m);
+	let pathRoute, defaultRoute, matchProps;
+	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
+		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
+		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
+		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
 	});
 
-	let incoming = pr || d;
+	/** @type {VNode<any> | undefined} */
+	let incoming = pathRoute || defaultRoute;
 	useMemo(() => {
 		prev.current = cur.current;
 
@@ -143,7 +151,8 @@ export function Router(props) {
 
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
 	const isHydratingBool = cur.current && cur.current.__h;
-	cur.current = h(RouteContext.Provider, { value: m }, incoming);
+	// @ts-ignore
+	cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
@@ -242,10 +251,12 @@ const RenderRef = ({ r }) => r.current;
 
 Router.Provider = LocationProvider;
 
-/** @typedef {{ url: string, path: string, query: object, route, wasPush: boolean }} RouteInfo */
-
-LocationProvider.ctx = createContext(/** @type {RouteInfo} */ ({}));
-const RouteContext = createContext({});
+LocationProvider.ctx = createContext(
+	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
+);
+const RouteContext = createContext(
+	/** @type {import('./router.d.ts').RouteHook & { rest: string }} */ ({})
+);
 
 export const Route = props => h(props.component, props);
 
