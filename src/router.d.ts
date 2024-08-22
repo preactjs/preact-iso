@@ -1,6 +1,10 @@
 import { AnyComponent, FunctionComponent, VNode } from 'preact';
 
-export const LocationProvider: FunctionComponent;
+export function LocationProvider(props: {
+	url?: string;
+	limit?: string | RegExp;
+	children?: VNode[];
+}): VNode;
 
 type NestedArray<T> = Array<T | NestedArray<T>>;
 
