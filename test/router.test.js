@@ -583,6 +583,201 @@ describe('Router', () => {
 		}
 	});
 
+	describe.skip('intercepted VS external links with `limit`', () => {
+		const shouldIntercept = '/app';
+		const shouldNavigate = '/site';
+
+		// prevent actual navigations (not implemented in JSDOM)
+		const clickHandler = jest.fn(e => e.preventDefault());
+
+		const Route = jest.fn(
+			() => html`
+				<div>
+					<a href="/app">Internal Link</a>
+					<a href="/site">External Link</a>
+				</div>
+			`
+		);
+
+		let pushState, loc;
+
+		beforeAll(() => {
+			pushState = jest.spyOn(history, 'pushState');
+			addEventListener('click', clickHandler);
+		});
+
+		afterAll(() => {
+			pushState.mockRestore();
+			removeEventListener('click', clickHandler);
+		});
+
+		beforeEach(async () => {
+			Route.mockClear();
+			clickHandler.mockClear();
+			pushState.mockClear();
+		});
+
+		it('should intercept clicks on links matching the `limit` props (string)', async () => {
+			render(
+				html`
+					<${LocationProvider} limit="/app">
+						<${Router}>
+							<${Route} default />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				`,
+				scratch
+			);
+			await sleep(10);
+
+			const el = scratch.querySelector(`a[href="${shouldIntercept}"]`);
+			el.click();
+			await sleep(1);
+			expect(loc).toMatchObject({ url: shouldIntercept });
+			expect(Route).toHaveBeenCalledTimes(1);
+			expect(pushState).toHaveBeenCalledWith(null, '', shouldIntercept);
+			expect(clickHandler).toHaveBeenCalled();
+		});
+
+		it('should navigate clicks on links not matching the `limit` props (string)', async () => {
+			render(
+				html`
+					<${LocationProvider} limit="app">
+						<${Router}>
+							<${Route} default />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				`,
+				scratch
+			);
+			await sleep(10);
+
+			const el = scratch.querySelector(`a[href="${shouldNavigate}"]`);
+			el.click();
+			await sleep(1);
+			expect(Route).not.toHaveBeenCalled();
+			expect(pushState).not.toHaveBeenCalled();
+			expect(clickHandler).toHaveBeenCalled();
+		});
+
+		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
+			render(
+				html`
+					<${LocationProvider} limit={/^\/app/}>
+						<${Router}>
+							<${Route} default />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				`,
+				scratch
+			);
+			await sleep(10);
+
+			const el = scratch.querySelector(`a[href="${shouldIntercept}"]`);
+			el.click();
+			await sleep(1);
+			expect(loc).toMatchObject({ url: shouldIntercept });
+			expect(Route).toHaveBeenCalledTimes(1);
+			expect(pushState).toHaveBeenCalledWith(null, '', shouldIntercept);
+			expect(clickHandler).toHaveBeenCalled();
+		});
+
+		it('should navigate clicks on links not matching the `limit` props (regex)', async () => {
+			render(
+				html`
+					<${LocationProvider} limit={/^\/app/}>
+						<${Router}>
+							<${Route} default />
+						<//>
+						<${() => {
+							loc = useLocation();
+						}} />
+					<//>
+				`,
+				scratch
+			);
+			await sleep(10);
+
+			const el = scratch.querySelector(`a[href="${shouldNavigate}"]`);
+			el.click();
+			await sleep(1);
+			expect(Route).not.toHaveBeenCalled();
+			expect(pushState).not.toHaveBeenCalled();
+			expect(clickHandler).toHaveBeenCalled();
+		});
+	});
+
+	it.skip('should ignore links excluded by `limit`', async () => {
+		let loc;
+		const pushState = jest.spyOn(history, 'pushState');
+
+		// prevent actual navigations (not implemented in JSDOM)
+		const clickHandler = jest.fn(e => e.preventDefault());
+		addEventListener('click', clickHandler);
+
+		const Route = jest.fn(
+			() => html`
+				<div>
+					<a href="/app">Internal Link</a>
+					<a href="/site">External Link</a>
+				</div>
+			`
+		);
+
+		render(
+			html`
+				<${LocationProvider} limit="/app">
+					<${Router}>
+						<${Route} default />
+					<//>
+					<${() => {
+						loc = useLocation();
+					}} />
+				<//>
+			`,
+			scratch
+		);
+
+		await sleep(10);
+		Route.mockClear();
+		clickHandler.mockClear();
+		pushState.mockClear();
+
+		let el = scratch.querySelector('a[href="/app"]');
+		el.click();
+		await sleep(20);
+		expect(loc).toMatchObject({ url: '/app' });
+		expect(Route).toHaveBeenCalledTimes(1);
+		expect(pushState).toHaveBeenCalledWith(null, '', '/app');
+		expect(clickHandler).toHaveBeenCalled();
+
+		await sleep(10);
+		Route.mockClear();
+		clickHandler.mockClear();
+		pushState.mockClear();
+
+		el = scratch.querySelector('a[href="/site"]');
+		el.click();
+		await sleep(1);
+		expect(Route).not.toHaveBeenCalled();
+		expect(pushState).not.toHaveBeenCalled();
+		expect(clickHandler).toHaveBeenCalled();
+
+		Route.mockRestore();
+		pushState.mockRestore();
+		clickHandler.mockRestore();
+		removeEventListener('click', clickHandler);
+	});
+
 	it('should scroll to top when navigating forward', async () => {
 		const scrollTo = sinon.spy(window, 'scrollTo');
 
