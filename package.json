@@ -27,7 +27,10 @@
 		"README.md"
 	],
 	"scripts": {
-		"test": "node --experimental-vm-modules node_modules/.bin/jest"
+		"_test": "node --experimental-vm-modules node_modules/.bin/jest",
+		"test": "yarn test:browser & yarn test:node",
+    "test:browser": "wtr test/*.test.js",
+		"test:node": "uvu test/node"
 	},
 	"jest": {
 		"testEnvironment": "jsdom",
@@ -49,5 +52,11 @@
 		"jsdom": "^22.1.0",
 		"preact": "10.15.1",
 		"preact-render-to-string": "^6.4.0"
+	},
+	"dependencies": {
+		"@esm-bundle/chai": "^4.3.4-fix.0",
+		"@types/mocha": "^10.0.7",
+		"@web/test-runner": "^0.18.3",
+		"uvu": "^0.5.6"
 	}
 }
