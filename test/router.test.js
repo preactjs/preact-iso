@@ -1,11 +1,14 @@
-import { jest, describe, it, beforeEach, expect } from '@jest/globals';
-import { h, hydrate, options, render } from 'preact';
+import { h, Fragment, render, hydrate, options } from 'preact';
 import { useState } from 'preact/hooks';
-import { html } from 'htm/preact';
+import * as chai from 'chai';
+import * as sinon from 'sinon';
+import sinonChai from 'sinon-chai';
+
 import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
 
-Object.defineProperty(window, 'scrollTo', { value() {} });
+const expect = chai.expect;
+chai.use(sinonChai);
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -13,279 +16,248 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const groggy = (component, ms) => lazy(() => sleep(ms).then(() => component));
 
 describe('Router', () => {
-	let scratch;
+	let scratch, loc;
+
+	const ShallowLocation = () => {
+		loc = useLocation();
+		return null;
+	}
+
 	beforeEach(() => {
 		if (scratch) {
 			render(null, scratch);
 			scratch.remove();
 		}
+		loc = undefined;
 		scratch = document.createElement('scratch');
 		document.body.appendChild(scratch);
 		history.replaceState(null, null, '/');
 	});
 
+
 	it('should strip trailing slashes from path', async () => {
-		let loc;
 		render(
-			html`
-				<${LocationProvider} url=${'/a/'}>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider url="/a/">
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
-		expect(loc).toMatchObject({
+		expect(loc).to.deep.include({
 			url: '/a/',
 			path: '/a',
 			query: {},
-			route: expect.any(Function)
 		});
 	});
 
 	it('should allow passing props to a route', async () => {
-		const Home = jest.fn(() => html`<h1>Home</h1>`);
-		const stack = [];
-		let loc;
+		const Home = sinon.fake(() => <h1>Home</h1>);
+
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}
-						onRouteChange=${url => {
-							stack.push(url);
-						}}
-					>
-						<${Home} path="/" test="2" />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Home path="/" test="2" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
-		expect(scratch).toHaveProperty('textContent', 'Home');
-		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' }, expect.anything());
-		expect(loc).toMatchObject({
+		expect(scratch).to.have.property('textContent', 'Home');
+		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' });
+		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
 			query: {},
-			route: expect.any(Function)
 		});
 	});
 
 	it('should allow updating props in a route', async () => {
-		const Home = jest.fn(() => html`<h1>Home</h1>`);
-		const stack = [];
-		let loc, set;
+		const Home = sinon.fake(() => <h1>Home</h1>);
+
+		/** @type {(string) => void} */
+		let set;
 
 		const App = () => {
 			const [test, setTest] = useState('2');
 			set = setTest;
-			return html`
-				<${LocationProvider}>
-				<${Router}
-					onRouteChange=${url => {
-						stack.push(url);
-					}}
-				>
-					<${Home} path="/" test=${test} />
-				<//>
-				<${() => {
-					loc = useLocation();
-				}} />
-				<//>
-				`;
+			return (
+				<LocationProvider>
+					<Router>
+						<Home path="/" test={test} />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			);
 		}
-		render(
-			html`<${App} />`,
-			scratch
-		);
+		render(<App />, scratch);
 
-		expect(scratch).toHaveProperty('textContent', 'Home');
-		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' }, expect.anything());
-		expect(loc).toMatchObject({
+		expect(scratch).to.have.property('textContent', 'Home');
+		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' });
+		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
 			query: {},
-			route: expect.any(Function)
 		});
 
 		set('3')
 		await sleep(1);
 
-		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' }, expect.anything());
-		expect(loc).toMatchObject({
+		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' });
+		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
 			query: {},
-			route: expect.any(Function)
 		});
-		expect(scratch).toHaveProperty('textContent', 'Home');
+		expect(scratch).to.have.property('textContent', 'Home');
 	});
 
 	it('should switch between synchronous routes', async () => {
-		const Home = jest.fn(() => html`<h1>Home</h1>`);
-		const Profiles = jest.fn(() => html`<h1>Profiles</h1>`);
-		const Profile = jest.fn(({ params }) => html`<h1>Profile: ${params.id}</h1>`);
-		const Fallback = jest.fn(() => html`<h1>Fallback</h1>`);
+		const Home = sinon.fake(() => <h1>Home</h1>);
+		const Profiles = sinon.fake(() => <h1>Profiles</h1>);
+		const Profile = sinon.fake(({ params }) => <h1>Profile: {params.id}</h1>);
+		const Fallback = sinon.fake(() => <h1>Fallback</h1>);
 		const stack = [];
-		let loc;
+
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}
-						onRouteChange=${url => {
-							stack.push(url);
-						}}
-					>
-						<${Home} path="/" />
-						<${Profiles} path="/profiles" />
-						<${Profile} path="/profiles/:id" />
-						<${Fallback} default />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router onRouteChange={url => stack.push(url)}>
+					<Home path="/" />
+					<Profiles path="/profiles" />
+					<Profile path="/profiles/:id" />
+					<Fallback default />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
-		expect(scratch).toHaveProperty('textContent', 'Home');
-		expect(Home).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
-		expect(Profiles).not.toHaveBeenCalled();
-		expect(Profile).not.toHaveBeenCalled();
-		expect(Fallback).not.toHaveBeenCalled();
-		expect(loc).toMatchObject({
+		expect(scratch).to.have.property('textContent', 'Home');
+		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expect(Profiles).not.to.have.been.called;
+		expect(Profile).not.to.have.been.called;
+		expect(Fallback).not.to.have.been.called;
+		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
 			query: {},
-			route: expect.any(Function)
 		});
 
-		Home.mockReset();
+		Home.resetHistory();
 		loc.route('/profiles');
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('textContent', 'Profiles');
-		expect(Home).not.toHaveBeenCalled();
-		expect(Profiles).toHaveBeenCalledWith({ path: '/profiles', query: {}, params: {}, rest: '' }, expect.anything());
-		expect(Profile).not.toHaveBeenCalled();
-		expect(Fallback).not.toHaveBeenCalled();
+		expect(scratch).to.have.property('textContent', 'Profiles');
+		expect(Home).not.to.have.been.called;
+		expect(Profiles).to.have.been.calledWith({ path: '/profiles', query: {}, params: {}, rest: '' });
+		expect(Profile).not.to.have.been.called;
+		expect(Fallback).not.to.have.been.called;
 
-		expect(loc).toMatchObject({
+		expect(loc).to.deep.include({
 			url: '/profiles',
 			path: '/profiles',
 			query: {}
 		});
 
-		Profiles.mockReset();
+		Profiles.resetHistory();
 		loc.route('/profiles/bob');
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('textContent', 'Profile: bob');
-		expect(Home).not.toHaveBeenCalled();
-		expect(Profiles).not.toHaveBeenCalled();
-		expect(Profile).toHaveBeenCalledWith(
+		expect(scratch).to.have.property('textContent', 'Profile: bob');
+		expect(Home).not.to.have.been.called;
+		expect(Profiles).not.to.have.been.called;
+		expect(Profile).to.have.been.calledWith(
 			{ path: '/profiles/bob', query: {}, params: { id: 'bob' }, id: 'bob', rest: '' },
-			expect.anything()
 		);
-		expect(Fallback).not.toHaveBeenCalled();
+		expect(Fallback).not.to.have.been.called;
 
-		expect(loc).toMatchObject({
+		expect(loc).to.deep.include({
 			url: '/profiles/bob',
 			path: '/profiles/bob',
 			query: {}
 		});
 
-		Profile.mockReset();
+		Profile.resetHistory();
 		loc.route('/other?a=b&c=d');
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('textContent', 'Fallback');
-		expect(Home).not.toHaveBeenCalled();
-		expect(Profiles).not.toHaveBeenCalled();
-		expect(Profile).not.toHaveBeenCalled();
-		expect(Fallback).toHaveBeenCalledWith(
+		expect(scratch).to.have.property('textContent', 'Fallback');
+		expect(Home).not.to.have.been.called;
+		expect(Profiles).not.to.have.been.called;
+		expect(Profile).not.to.have.been.called;
+		expect(Fallback).to.have.been.calledWith(
 			{ default: true, path: '/other', query: { a: 'b', c: 'd' }, params: {}, rest: '' },
-			expect.anything()
 		);
 
-		expect(loc).toMatchObject({
+		expect(loc).to.deep.include({
 			url: '/other?a=b&c=d',
 			path: '/other',
 			query: { a: 'b', c: 'd' }
 		});
-		expect(stack).toEqual(['/profiles', '/profiles/bob', '/other?a=b&c=d']);
+		expect(stack).to.eql(['/profiles', '/profiles/bob', '/other?a=b&c=d']);
 	});
 
 	it('should wait for asynchronous routes', async () => {
-		const route = name => html`
-			<h1>${name}</h1>
-			<p>hello</p>
-		`;
-		const A = jest.fn(groggy(() => route('A'), 1));
-		const B = jest.fn(groggy(() => route('B'), 1));
-		const C = jest.fn(groggy(() => html`<h1>C</h1>`, 1));
-		let loc;
+		const route = name => (
+			<>
+				<h1>{name}</h1>
+				<p>hello</p>
+			</>
+		);
+		const A = sinon.fake(groggy(() => route('A'), 1));
+		const B = sinon.fake(groggy(() => route('B'), 1));
+		const C = sinon.fake(groggy(() => <h1>C</h1>, 1));
+
 		render(
-			html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}>
-							<${A} path="/" />
-							<${B} path="/b" />
-							<${C} path="/c" />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				<//>
-			`,
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+						<B path="/b" />
+						<C path="/c" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			</ErrorBoundary>,
 			scratch
 		);
 
-		expect(scratch).toHaveProperty('innerHTML', '');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
 
-		A.mockClear();
+		A.resetHistory();
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
 
-		A.mockClear();
+		A.resetHistory();
 		loc.route('/b');
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).not.toHaveBeenCalled();
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(A).not.to.have.been.called;
 
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		// We should never re-invoke <A /> while loading <B /> (that would be a remount of the old route):
-		//expect(A).not.toHaveBeenCalled();
-		//expect(B).toHaveBeenCalledWith({ path: '/b', query: {}, params: {}, rest: '' }, expect.anything());
+		//expect(A).not.to.have.been.called;
+		//expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' }, expect.anything());
 
-		B.mockClear();
+		B.resetHistory();
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
-		expect(A).not.toHaveBeenCalled();
-		expect(B).toHaveBeenCalledWith({ path: '/b', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(A).not.to.have.been.called;
+		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
 
-		B.mockClear();
+		B.resetHistory();
 		loc.route('/c');
 		loc.route('/c?1');
 		loc.route('/c');
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
-		expect(B).not.toHaveBeenCalled();
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(B).not.to.have.been.called;
 
 		await sleep(1);
 
@@ -293,44 +265,44 @@ describe('Router', () => {
 		loc.route('/c?2');
 		loc.route('/c');
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		// We should never re-invoke <A /> while loading <B /> (that would be a remount of the old route):
-		expect(B).not.toHaveBeenCalled();
-		expect(C).toHaveBeenCalledWith({ path: '/c', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(B).not.to.have.been.called;
+		expect(C).to.have.been.calledWith({ path: '/c', query: {}, params: {}, rest: '' });
 
-		C.mockClear();
+		C.resetHistory();
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>C</h1>');
-		expect(B).not.toHaveBeenCalled();
-		expect(C).toHaveBeenCalledWith({ path: '/c', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<h1>C</h1>');
+		expect(B).not.to.have.been.called;
+		expect(C).to.have.been.calledWith({ path: '/c', query: {}, params: {}, rest: '' });
 
 		// "instant" routing to already-loaded routes
 
-		C.mockClear();
-		B.mockClear();
+		C.resetHistory();
+		B.resetHistory();
 		loc.route('/b');
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
-		expect(C).not.toHaveBeenCalled();
-		// expect(B).toHaveBeenCalledTimes(1);
-		expect(B).toHaveBeenCalledWith({ path: '/b', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(C).not.to.have.been.called;
+		// expect(B).to.have.been.calledOnce();
+		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
 
-		B.mockClear();
+		B.resetHistory();
 		loc.route('/');
 		await sleep(1);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(B).not.toHaveBeenCalled();
-		// expect(A).toHaveBeenCalledTimes(1);
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(B).not.to.have.been.called;
+		// expect(A).to.have.been.calledOnce();
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
 	});
 
 	it('rerenders same-component routes rather than swap', async () => {
-		const A = jest.fn(groggy(() => html`<h1>a</h1>`, 1));
-		const B = jest.fn(groggy(({ sub }) => html`<h1>b/${sub}</h1>`, 1));
-		let loc, childrenLength;
+		const A = sinon.fake(groggy(() => <h1>a</h1>, 1));
+		const B = sinon.fake(groggy(({ sub }) => <h1>b/{sub}</h1>, 1));
+		let childrenLength;
 
 		const old = options.__c;
 		options.__c = (vnode, queue) => {
@@ -342,190 +314,183 @@ describe('Router', () => {
 		}
 
 		render(
-			html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}>
-							<${A} path="/" />
-							<${B} path="/b/:sub" />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				<//>
-			`,
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+						<B path="/b/:sub" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			</ErrorBoundary>,
 			scratch
 		);
 
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>a</h1>');
-		expect(childrenLength).toBe(2);
+		expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+		expect(childrenLength).to.equal(2);
 
 		loc.route('/b/a');
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>b/a</h1>');
-		expect(childrenLength).toBe(2);
+		expect(scratch).to.have.property('innerHTML', '<h1>b/a</h1>');
+		expect(childrenLength).to.equal(2);
 
 		loc.route('/b/b');
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>b/b</h1>');
-		expect(childrenLength).toBe(1);
+		expect(scratch).to.have.property('innerHTML', '<h1>b/b</h1>');
+		expect(childrenLength).to.equal(1);
 
 		loc.route('/');
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>a</h1>');
-		expect(childrenLength).toBe(2);
+		expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+		expect(childrenLength).to.equal(2);
 
 		options.__c = old;
 	});
 
 	it('should support onLoadStart/onLoadEnd/onRouteChange w/out navigation', async () => {
-		const route = name => html`
-			<h1>${name}</h1>
-			<p>hello</p>
-		`;
-		const A = jest.fn(groggy(() => route('A'), 1));
-		const loadStart = jest.fn();
-		const loadEnd = jest.fn();
-		const routeChange = jest.fn();
+		const route = name => (
+			<>
+				<h1>{name}</h1>
+				<p>hello</p>
+			</>
+		);
+		const A = sinon.fake(groggy(() => route('A'), 1));
+		const loadStart = sinon.fake();
+		const loadEnd = sinon.fake();
+		const routeChange = sinon.fake();
+
 		render(
-			html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}
-							onLoadStart=${loadStart}
-							onLoadEnd=${loadEnd}
-							onRouteChange=${routeChange}
-						>
-							<${A} path="/" />
-						<//>
-					<//>
-				<//>
-			`,
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router
+						onLoadStart={loadStart}
+						onLoadEnd={loadEnd}
+						onRouteChange={routeChange}
+					>
+						<A path="/" />
+					</Router>
+				</LocationProvider>
+			</ErrorBoundary>,
 			scratch
 		);
 
-		expect(scratch).toHaveProperty('innerHTML', '');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
-		expect(loadStart).toHaveBeenCalledWith('/');
-		expect(loadEnd).not.toHaveBeenCalled();
-		expect(routeChange).not.toHaveBeenCalled();
+		expect(scratch).to.have.property('innerHTML', '');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expect(loadStart).to.have.been.calledWith('/');
+		expect(loadEnd).not.to.have.been.called;
+		expect(routeChange).not.to.have.been.called;
 
-		A.mockClear();
-		loadStart.mockClear();
-		loadEnd.mockClear();
-		routeChange.mockClear();
+		A.resetHistory();
+		loadStart.resetHistory();
+		loadEnd.resetHistory();
+		routeChange.resetHistory();
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
-		expect(loadStart).not.toHaveBeenCalled();
-		expect(loadEnd).toHaveBeenCalledWith('/');
-		expect(routeChange).not.toHaveBeenCalled();
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expect(loadStart).not.to.have.been.called;
+		expect(loadEnd).to.have.been.calledWith('/');
+		expect(routeChange).not.to.have.been.called;
 	});
 
 	it('should support onLoadStart/onLoadEnd/onRouteChange w/ navigation', async () => {
-		const route = name => html`
-			<h1>${name}</h1>
-			<p>hello</p>
-		`;
-		const A = jest.fn(groggy(() => route('A'), 1));
-		const B = jest.fn(groggy(() => route('B'), 1));
-		const loadStart = jest.fn();
-		const loadEnd = jest.fn();
-		const routeChange = jest.fn();
-		let loc;
+		const route = name => (
+			<>
+				<h1>{name}</h1>
+				<p>hello</p>
+			</>
+		);
+		const A = sinon.fake(groggy(() => route('A'), 1));
+		const B = sinon.fake(groggy(() => route('B'), 1));
+		const loadStart = sinon.fake();
+		const loadEnd = sinon.fake();
+		const routeChange = sinon.fake();
+
 		render(
-			html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}
-							onLoadStart=${loadStart}
-							onLoadEnd=${loadEnd}
-							onRouteChange=${routeChange}
-						>
-							<${A} path="/" />
-							<${B} path="/b" />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				<//>
-			`,
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router
+						onLoadStart={loadStart}
+						onLoadEnd={loadEnd}
+						onRouteChange={routeChange}
+					>
+						<A path="/" />
+						<B path="/b" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			</ErrorBoundary>,
 			scratch
 		);
 
 		await sleep(10);
 
-		A.mockClear();
-		loadStart.mockClear();
-		loadEnd.mockClear();
-		routeChange.mockClear();
+		A.resetHistory();
+		loadStart.resetHistory();
+		loadEnd.resetHistory();
+		routeChange.resetHistory();
 
 		loc.route('/b');
 
 		await sleep(1);
 
-		expect(loadStart).toHaveBeenCalledWith('/b');
-		expect(loadEnd).not.toHaveBeenCalled();
-		expect(routeChange).not.toHaveBeenCalled();
+		expect(loadStart).to.have.been.calledWith('/b');
+		expect(loadEnd).not.to.have.been.called;
+		expect(routeChange).not.to.have.been.called;
 
-		A.mockClear();
-		loadStart.mockClear();
-		loadEnd.mockClear();
-		routeChange.mockClear();
+		A.resetHistory();
+		loadStart.resetHistory();
+		loadEnd.resetHistory();
+		routeChange.resetHistory();
 
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<h1>B</h1><p>hello</p>');
-		expect(loadStart).not.toHaveBeenCalled();
-		expect(loadEnd).toHaveBeenCalledWith('/b');
-		expect(routeChange).toHaveBeenCalledWith('/b');
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(loadStart).not.to.have.been.called;
+		expect(loadEnd).to.have.been.calledWith('/b');
+		expect(routeChange).to.have.been.calledWith('/b');
 	});
 
 	it('should only call onLoadEnd once upon promise flush', async () => {
-		const route = name => html`
-			<h1>${name}</h1>
-			<p>hello</p>
-		`;
-		const A = jest.fn(groggy(() => route('A'), 1));
-		const loadEnd = jest.fn();
+		const route = name => (
+			<>
+				<h1>{name}</h1>
+				<p>hello</p>
+			</>
+		);
+		const A = sinon.fake(groggy(() => route('A'), 1));
+		const loadEnd = sinon.fake();
+
+		/** @type {(string) => void} */
 		let set;
 
 		const App = () => {
-			const [test, setTest] = useState('1');
-			set = setTest;
-			return html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}
-							onLoadEnd=${loadEnd}
-						>
-							<${A} path="/" />
-						<//>
-					<//>
-				<//>
-			`;
+			set = useState('1')[1];
+			return (
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router onLoadEnd={loadEnd}>
+							<A path="/" />
+						</Router>
+					</LocationProvider>
+				</ErrorBoundary>
+			);
 		}
-		render(
-			html`<${App} />`,
-			scratch
-		);
+		render(<App />,	scratch);
 
 		await sleep(10);
 
-		loadEnd.mockClear();
+		loadEnd.resetHistory();
 
 		set('2');
 		await sleep(1);
 
-		expect(loadEnd).not.toHaveBeenCalled();
+		expect(loadEnd).not.to.have.been.called;
 	});
 
 	describe('intercepted VS external links', () => {
@@ -533,50 +498,44 @@ describe('Router', () => {
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
 
 		// prevent actual navigations (not implemented in JSDOM)
-		const clickHandler = jest.fn(e => e.preventDefault());
+		const clickHandler = sinon.fake(e => e.preventDefault());
 
-		const Route = jest.fn(
-			() => html`
-				<div>
-					${[...shouldIntercept, ...shouldNavigate].map((target, i) => {
-						const url = '/' + i + '/' + target;
-						if (target === null) return html`<a href=${url}>target = ${target + ''}</a>`;
-						return html`<a href=${url} target=${target}>target = ${target}</a> `;
-					})}
-				</div>
-			`
+		const Route = sinon.fake(
+			() => <div>
+				{[...shouldIntercept, ...shouldNavigate].map((target, i) => {
+					const url = '/' + i + '/' + target;
+					if (target === null) return <a href={url}>target = {target + ''}</a>;
+					return <a href={url} target={target}>target = {target}</a>;
+				})}
+			</div>
 		);
 
-		let pushState, loc;
+		let pushState;
 
-		beforeAll(() => {
-			pushState = jest.spyOn(history, 'pushState');
+		before(() => {
+			pushState = sinon.spy(history, 'pushState');
 			addEventListener('click', clickHandler);
 		});
 
-		afterAll(() => {
-			pushState.mockRestore();
+		after(() => {
+			pushState.restore();
 			removeEventListener('click', clickHandler);
 		});
 
 		beforeEach(async () => {
 			render(
-				html`
-					<${LocationProvider}>
-						<${Router}>
-							<${Route} default />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				`,
+				<LocationProvider>
+					<Router>
+						<Route default />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
 				scratch
 			);
 			await sleep(10);
-			Route.mockClear();
-			clickHandler.mockClear();
-			pushState.mockClear();
+			Route.resetHistory();
+			clickHandler.resetHistory();
+			pushState.resetHistory();
 		});
 
 		const getName = target => (target == null ? 'no target attribute' : `target="${target}"`);
@@ -592,10 +551,10 @@ describe('Router', () => {
 				const url = el.getAttribute('href');
 				el.click();
 				await sleep(1);
-				expect(loc).toMatchObject({ url });
-				expect(Route).toHaveBeenCalledTimes(1);
-				expect(pushState).toHaveBeenCalledWith(null, '', url);
-				expect(clickHandler).toHaveBeenCalled();
+				expect(loc).to.deep.include({ url });
+				expect(Route).to.have.been.calledOnce;
+				expect(pushState).to.have.been.calledWith(null, '', url);
+				expect(clickHandler).to.have.been.called;
 			});
 		}
 
@@ -609,238 +568,216 @@ describe('Router', () => {
 				if (!el) throw Error(`Unable to find link: ${sel}`);
 				el.click();
 				await sleep(1);
-				expect(Route).not.toHaveBeenCalled();
-				expect(pushState).not.toHaveBeenCalled();
-				expect(clickHandler).toHaveBeenCalled();
+				expect(Route).not.to.have.been.called;
+				expect(pushState).not.to.have.been.called;
+				expect(clickHandler).to.have.been.called;
 			});
 		}
 	});
 
 	it('should scroll to top when navigating forward', async () => {
-		const scrollTo = jest.spyOn(window, 'scrollTo');
+		const scrollTo = sinon.spy(window, 'scrollTo');
 
-		const Route = jest.fn(() => html`<div style=${{ height: '1000px' }}><a href="/link">link</a></div>`);
-		let loc;
+		const Route = sinon.fake(() => <div style={{ height: '1000px' }}><a href="/link">link</a></div>);
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						<${Route} default />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Route default />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
 		await sleep(20);
 
-		expect(scrollTo).not.toHaveBeenCalled();
-		expect(Route).toHaveBeenCalledTimes(1);
-		Route.mockClear();
+		expect(scrollTo).not.to.have.been.called;
+		expect(Route).to.have.been.calledOnce;
+		Route.resetHistory();
 
 		loc.route('/programmatic');
 		await sleep(10);
-		expect(loc).toMatchObject({ url: '/programmatic' });
-		expect(scrollTo).toHaveBeenCalledWith(0, 0);
-		expect(scrollTo).toHaveBeenCalledTimes(1);
-		expect(Route).toHaveBeenCalledTimes(1);
-		Route.mockClear();
-		scrollTo.mockClear();
+		expect(loc).to.deep.include({ url: '/programmatic' });
+		expect(scrollTo).to.have.been.calledWith(0, 0);
+		expect(scrollTo).to.have.been.calledOnce;
+		expect(Route).to.have.been.calledOnce;
+		Route.resetHistory();
+		scrollTo.resetHistory();
 
 		scratch.querySelector('a').click();
 		await sleep(10);
-		expect(loc).toMatchObject({ url: '/link' });
-		expect(scrollTo).toHaveBeenCalledWith(0, 0);
-		expect(scrollTo).toHaveBeenCalledTimes(1);
-		expect(Route).toHaveBeenCalledTimes(1);
-		Route.mockClear();
+		expect(loc).to.deep.include({ url: '/link' });
+		expect(scrollTo).to.have.been.calledWith(0, 0);
+		expect(scrollTo).to.have.been.calledOnce;
+		expect(Route).to.have.been.calledOnce;
+		Route.resetHistory();
 
 		await sleep(10);
-		scrollTo.mockRestore();
+		scrollTo.restore();
 	});
 
-	it('should ignore clicks on anchor links', async () => {
-		let loc;
-		const pushState = jest.spyOn(history, 'pushState');
+	it('should ignore clicks on document fragment links', async () => {
+		const pushState = sinon.spy(history, 'pushState');
 
-		const Route = jest.fn(
-			() => html`
-				<div>
-					<a href="#foo">just #foo</a>
-					<a href="/other#bar">other #bar</a>
-				</div>
-			`
+		const Route = sinon.fake(
+			() => <div>
+				<a href="#foo">just #foo</a>
+				<a href="/other#bar">other #bar</a>
+			</div>
 		);
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						<${Route} path="/" />
-						<${Route} path="/other" />
-						<${Route} default />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Route path="/" />
+					<Route path="/other" />
+					<Route default />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
-		expect(Route).toHaveBeenCalledTimes(1);
-		Route.mockClear();
+		expect(Route).to.have.been.calledOnce;
+		Route.resetHistory();
 		await sleep(20);
 
 		scratch.querySelector('a[href="#foo"]').click();
 		await sleep(20);
 		// NOTE: we don't (currently) propagate in-page anchor navigations into context, to avoid useless renders.
-		expect(loc).toMatchObject({ url: '/' });
-		expect(Route).not.toHaveBeenCalled();
-		expect(pushState).not.toHaveBeenCalled();
-		expect(location.hash).toEqual('#foo');
+		expect(loc).to.deep.include({ url: '/' });
+		expect(Route).not.to.have.been.called;
+		expect(pushState).not.to.have.been.called;
+		expect(location.hash).to.equal('#foo');
 
 		await sleep(10);
 
 		scratch.querySelector('a[href="/other#bar"]').click();
 		await sleep(10);
-		expect(Route).toHaveBeenCalledTimes(1);
-		expect(loc).toMatchObject({ url: '/other#bar', path: '/other' });
-		expect(pushState).toHaveBeenCalled();
-		expect(location.hash).toEqual('#bar');
+		expect(Route).to.have.been.calledOnce;
+		expect(loc).to.deep.include({ url: '/other#bar', path: '/other' });
+		expect(pushState).to.have.been.called;
+		expect(location.hash).to.equal('#bar');
 
-		pushState.mockRestore();
+		pushState.restore();
 	});
 
 	it('should normalize children', async () => {
-		let loc;
-		const pushState = jest.spyOn(history, 'pushState');
-		const Route = jest.fn(() => html`<a href="/foo#foo">foo</a>`);
+		const pushState = sinon.spy(history, 'pushState');
+		const Route = sinon.fake(() => <a href="/foo#foo">foo</a>);
 
 		const routes = ['/foo', '/bar'];
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						${routes.map(route => html`<${Route} path=${route} />`)}
-						<${Route} default />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					{routes.map(route => <Route path={route} />)}
+					<Route default />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
-		expect(Route).toHaveBeenCalledTimes(1);
-		Route.mockClear();
+		expect(Route).to.have.been.calledOnce;
+		Route.resetHistory();
 		await sleep(20);
 
 		scratch.querySelector('a[href="/foo#foo"]').click();
 		await sleep(20);
-		expect(Route).toHaveBeenCalledTimes(1);
-		expect(loc).toMatchObject({ url: '/foo#foo', path: '/foo' });
-		expect(pushState).toHaveBeenCalled();
+		expect(Route).to.have.been.calledOnce;
+		expect(loc).to.deep.include({ url: '/foo#foo', path: '/foo' });
+		expect(pushState).to.have.been.called;
 
-		pushState.mockRestore();
+		pushState.restore();
 	});
 
 	it('should match nested routes', async () => {
 		let route;
-		const Inner = () => html`
-			<${Router}>
-				<${Route}
+		const Inner = () => (
+			<Router>
+				<Route
 					path="/bob"
-					component=${() => {
+					component={() => {
 						route = useRoute();
 						return null;
 					}}
 				/>
-			<//>
-		`;
+			</Router>
+		);
 
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						<${Route} path="/foo/:id/*" component=${Inner} />
-					<//>
-					<a href="/foo/bar/bob"></a>
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Route path="/foo/:id/*" component={Inner} />
+				</Router>
+				<a href="/foo/bar/bob"></a>
+			</LocationProvider>,
 			scratch
 		);
 
 		scratch.querySelector('a[href="/foo/bar/bob"]').click();
 		await sleep(20);
-		expect(route).toMatchObject({ path: '/bob', params: { id: 'bar' } });
+		expect(route).to.deep.include({ path: '/bob', params: { id: 'bar' } });
 	});
 
 	it('should append params in nested routes', async () => {
 		let params;
-		const Inner = () => html`
-			<${Router}>
-				<${Route}
+		const Inner = () => (
+			<Router>
+				<Route
 					path="/bob"
-					component=${() => {
+					component={() => {
 						params = useRoute().params;
 						return null;
 					}}
 				/>
-			<//>
-		`;
+			</Router>
+		);
 
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						<${Route} path="/foo/:id/*" component=${Inner} />
-					<//>
-					<a href="/foo/bar/bob"></a>
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Route path="/foo/:id/*" component={Inner} />
+				</Router>
+				<a href="/foo/bar/bob"></a>
+			</LocationProvider>,
 			scratch
 		);
 
 		scratch.querySelector('a[href="/foo/bar/bob"]').click();
 		await sleep(20);
-		expect(params).toMatchObject({ id: 'bar' });
+		expect(params).to.deep.include({ id: 'bar' });
 	});
 
 	it('should replace the current URL', async () => {
-		const pushState = jest.spyOn(history, 'pushState');
-		const replaceState = jest.spyOn(history, 'replaceState');
-		let loc;
+		const pushState = sinon.spy(history, 'pushState');
+		const replaceState = sinon.spy(history, 'replaceState');
 
 		render(
-			html`
-				<${LocationProvider}>
-					<${Router}>
-						<${Route} path="/foo" component=${() => null} />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
+			<LocationProvider>
+				<Router>
+					<Route path="/foo" component={() => null} />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
 			scratch
 		);
 
 		await sleep(20);
 		loc.route("/foo", true);
-		expect(pushState).not.toHaveBeenCalled();
-		expect(replaceState).toHaveBeenCalledWith(null, "", "/foo");
+		expect(pushState).not.to.have.been.called;
+		expect(replaceState).to.have.been.calledWith(null, "", "/foo");
 
-		pushState.mockRestore();
-		replaceState.mockRestore();
+		pushState.restore();
+		replaceState.restore();
 	});
 });
 
+const MODE_HYDRATE = 1 << 5;
+const MODE_SUSPENDED = 1 << 7;
+
 describe('hydration', () => {
 	let scratch;
+
 	beforeEach(() => {
 		if (scratch) {
 			render(null, scratch);
@@ -853,27 +790,22 @@ describe('hydration', () => {
 
 	it('should wait for asynchronous routes', async () => {
 		scratch.innerHTML = '<div><h1>A</h1><p>hello</p></div>';
-		const route = name => html`
+		const route = name => (
 			<div>
-				<h1>${name}</h1>
+				<h1>{name}</h1>
 				<p>hello</p>
 			</div>
-		`;
-		const A = jest.fn(groggy(() => route('A'), 1));
-		let loc;
+		);
+		const A = sinon.fake(groggy(() => route('A'), 1));
+
 		hydrate(
-			html`
-				<${ErrorBoundary}>
-					<${LocationProvider}>
-						<${Router}>
-							<${A} path="/" />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				<//>
-			`,
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+					</Router>
+				</LocationProvider>
+			</ErrorBoundary>,
 			scratch
 		);
 
@@ -883,20 +815,20 @@ describe('hydration', () => {
 		});
 		mutationObserver.observe(scratch, { childList: true, subtree: true });
 
-		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
+		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
 		const oldOptionsVnode = options.__b;
 		let hasMatched = false;
 		options.__b = (vnode) => {
 			if (vnode.type === A && !hasMatched) {
 				hasMatched = true;
 				if (vnode.__ && vnode.__.__h) {
-					expect(vnode.__.__h).toBe(true)
+					expect(vnode.__.__h).to.equal(true)
 				} else if (vnode.__ && vnode.__.__u) {
-					expect(!!(vnode.__.__u & MODE_SUSPENDED)).toBe(true);
-					expect(!!(vnode.__.__u & MODE_HYDRATE)).toBe(true);
+					expect(!!(vnode.__.__u & MODE_SUSPENDED)).to.equal(true);
+					expect(!!(vnode.__.__u & MODE_HYDRATE)).to.equal(true);
 				} else {
-					expect(true).toBe(false);
+					expect(true).to.equal(false);
 				}
 			}
 
@@ -904,16 +836,13 @@ describe('hydration', () => {
 				oldOptionsVnode(vnode);
 			}
 		}
-		A.mockClear();
+		A.resetHistory();
 		await sleep(10);
 
-		expect(scratch).toHaveProperty('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).toHaveBeenCalledWith({ path: '/', query: {}, params: {}, rest: '' }, expect.anything());
-		expect(mutations).toHaveLength(0);
+		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
+		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expect(mutations).to.have.length(0);
 
 		options.__b = oldOptionsVnode;
 	});
 })
-
-const MODE_HYDRATE = 1 << 5;
-const MODE_SUSPENDED = 1 << 7;
