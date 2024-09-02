@@ -1,4 +1,4 @@
-import { h, createContext, cloneElement, toChildArray } from 'preact';
+import { h, Fragment, createContext, cloneElement, toChildArray } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
@@ -47,10 +47,10 @@ export const exec = (url, route, matches) => {
 	url = url.split('/').filter(Boolean);
 	route = (route || '').split('/').filter(Boolean);
 	for (let i = 0, val, rest; i < Math.max(url.length, route.length); i++) {
-		let [, m, param, flag] = (route[i] || '').match(/^(:?)(.*?)([+*?]?)$/);
+		let [, m, pathParam, flag] = (route[i] || '').match(/^(:?)(.*?)([+*?]?)$/);
 		val = url[i];
 		// segment match:
-		if (!m && param == val) continue;
+		if (!m && pathParam == val) continue;
 		// /foo/* match
 		if (!m && val && flag == '*') {
 			matches.rest = '/' + url.slice(i).map(decodeURIComponent).join('/');
@@ -63,8 +63,8 @@ export const exec = (url, route, matches) => {
 		if (rest) val = url.slice(i).map(decodeURIComponent).join('/');
 		// normal/optional field:
 		else if (val) val = decodeURIComponent(val);
-		matches.params[param] = val;
-		if (!(param in matches)) matches[param] = val;
+		matches.pathParams[pathParam] = val;
+		if (!(pathParam in matches)) matches[pathParam] = val;
 		if (rest) break;
 	}
 	return matches;
@@ -74,18 +74,21 @@ export function LocationProvider(props) {
 	const [url, route] = useReducer(UPDATE, location.pathname + location.search);
 	const wasPush = push === true;
 
+	/** @type {import('./router.d.ts').LocationHook} */
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
 		const path = u.pathname.replace(/\/+$/g, '') || '/';
-		// @ts-ignore-next
+
 		return {
 			url,
 			path,
-			query: Object.fromEntries(u.searchParams),
+			pathParams: {},
+			searchParams: Object.fromEntries(u.searchParams),
 			route: (url, replace) => route({ url, replace }),
 			wasPush
 		};
 	}, [url]);
+
 
 	useLayoutEffect(() => {
 		addEventListener('click', route);
@@ -97,7 +100,6 @@ export function LocationProvider(props) {
 		};
 	}, []);
 
-	// @ts-ignore
 	return h(LocationProvider.ctx.Provider, { value }, props.children);
 }
 
@@ -106,8 +108,7 @@ const RESOLVED = Promise.resolve();
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
-	const { url, query, wasPush, path } = useLocation();
-	const { rest = path, params = {} } = useContext(RouteContext);
+	const { url, path, pathParams, searchParams, wasPush } = useLocation();
 
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
@@ -129,7 +130,7 @@ export function Router(props) {
 
 	let pathRoute, defaultRoute, matchProps;
 	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
-		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
+		const matches = exec(path, vnode.props.path, (matchProps = { ...vnode.props, path, pathParams, searchParams, rest: '' }));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
 	});
@@ -140,7 +141,7 @@ export function Router(props) {
 		prev.current = cur.current;
 
 		// Only mark as an update if the route component changed.
-		const outgoing = prev.current && prev.current.props.children;
+		const outgoing = prev.current;
 		if (!outgoing || !incoming || incoming.type !== outgoing.type || incoming.props.component !== outgoing.props.component) {
 			// This hack prevents Preact from diffing when we swap `cur` to `prev`:
 			if (this.__v && this.__v.__k) this.__v.__k.reverse();
@@ -152,7 +153,8 @@ export function Router(props) {
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
 	const isHydratingBool = cur.current && cur.current.__h;
 	// @ts-ignore
-	cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
+	// TODO: Figure out how to set `.__h` properly so that it's preserved for the next render.
+	cur.current = h(Fragment, {}, incoming);
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
@@ -254,11 +256,7 @@ Router.Provider = LocationProvider;
 LocationProvider.ctx = createContext(
 	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
 );
-const RouteContext = createContext(
-	/** @type {import('./router.d.ts').RouteHook & { rest: string }} */ ({})
-);
 
 export const Route = props => h(props.component, props);
 
 export const useLocation = () => useContext(LocationProvider.ctx);
-export const useRoute = () => useContext(RouteContext);
