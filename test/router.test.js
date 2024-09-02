@@ -37,11 +37,14 @@ describe('Router', () => {
 
 	it('should strip trailing slashes from path', async () => {
 		render(
-			<LocationProvider url="/a/">
+			<LocationProvider>
 				<ShallowLocation />
 			</LocationProvider>,
 			scratch
 		);
+
+		loc.route('/a/');
+		await sleep(1);
 
 		expect(loc).to.deep.include({
 			url: '/a/',
