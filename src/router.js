@@ -97,8 +97,7 @@ export const exec = (url, route, matches = {}) => {
  * @param {import('preact').ComponentChildren} [props.children]
  */
 export function LocationProvider(props) {
-	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
+	const [url, route] = useReducer(handleNav, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
 
