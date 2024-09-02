@@ -80,8 +80,7 @@ export const exec = (url, route, matches = {}) => {
  * @type {import('./router.d.ts').LocationProvider}
  */
 export function LocationProvider(props) {
-	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(UPDATE, props.url || location.pathname + location.search);
+	const [url, route] = useReducer(UPDATE, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
 
