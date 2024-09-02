@@ -179,7 +179,7 @@ A hook to work with the `LocationProvider` to access location context.
 
 Returns an object with the following properties:
 
--   `url: string` - _Redundant_ - The current path
+-   `url: string` - The current path & search params
 -   `path: string` - The current path
 -   `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
 -   `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
