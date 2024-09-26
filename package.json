@@ -27,7 +27,7 @@
 		"README.md"
 	],
 	"scripts": {
-		"test": "yarn test:node && yarn test:browser",
+		"test": "npm run test:node && npm run test:browser",
 		"test:browser": "wtr test/*.test.js",
 		"test:node": "uvu test/node"
 	},
@@ -47,5 +47,8 @@
 		"sinon": "^18.0.0",
 		"sinon-chai": "^4.0.0",
 		"uvu": "^0.5.6"
+	},
+	"overrides": {
+		"@web/dev-server-core": "0.7.1"
 	}
 }
