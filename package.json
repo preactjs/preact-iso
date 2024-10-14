@@ -42,8 +42,8 @@
 		"@web/test-runner": "^0.18.3",
 		"chai": "^5.1.1",
 		"htm": "^3.1.1",
-		"preact": "10.15.1",
-		"preact-render-to-string": "^6.4.0",
+		"preact": "^10.24.3",
+		"preact-render-to-string": "^6.5.11",
 		"sinon": "^18.0.0",
 		"sinon-chai": "^4.0.0",
 		"uvu": "^0.5.6"
