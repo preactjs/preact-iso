@@ -505,7 +505,6 @@ describe('Router', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
 
-		// prevent actual navigations (not implemented in JSDOM)
 		const clickHandler = sinon.fake(e => e.preventDefault());
 
 		const Route = sinon.fake(
@@ -583,199 +582,150 @@ describe('Router', () => {
 		}
 	});
 
-	describe.skip('intercepted VS external links with `limit`', () => {
-		const shouldIntercept = '/app';
-		const shouldNavigate = '/site';
+	describe('intercepted VS external links with `limit`', () => {
+		const shouldIntercept = ['/app', '/app/deeper'];
+		const shouldNavigate = ['/site', '/site/deeper'];
 
-		// prevent actual navigations (not implemented in JSDOM)
-		const clickHandler = jest.fn(e => e.preventDefault());
+		const clickHandler = sinon.fake(e => e.preventDefault());
 
-		const Route = jest.fn(
-			() => html`
+		const Route = sinon.fake(
+			() => (
 				<div>
 					<a href="/app">Internal Link</a>
+					<a href="/app/deeper">Internal Deeper Link</a>
 					<a href="/site">External Link</a>
+					<a href="/site/deeper">External Deeper Link</a>
 				</div>
-			`
+			)
 		);
 
-		let pushState, loc;
+		let pushState;
 
-		beforeAll(() => {
-			pushState = jest.spyOn(history, 'pushState');
+		before(() => {
+			pushState = sinon.spy(history, 'pushState');
 			addEventListener('click', clickHandler);
 		});
 
-		afterAll(() => {
-			pushState.mockRestore();
+		after(() => {
+			pushState.restore();
 			removeEventListener('click', clickHandler);
 		});
 
 		beforeEach(async () => {
-			Route.mockClear();
-			clickHandler.mockClear();
-			pushState.mockClear();
+			Route.resetHistory();
+			clickHandler.resetHistory();
+			pushState.resetHistory();
 		});
 
 		it('should intercept clicks on links matching the `limit` props (string)', async () => {
 			render(
-				html`
-					<${LocationProvider} limit="/app">
-						<${Router}>
-							<${Route} default />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				`,
+				<LocationProvider limit="/app">
+					<Router>
+						<Route default />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
 				scratch
 			);
+			Route.resetHistory();
 			await sleep(10);
 
-			const el = scratch.querySelector(`a[href="${shouldIntercept}"]`);
-			el.click();
-			await sleep(1);
-			expect(loc).toMatchObject({ url: shouldIntercept });
-			expect(Route).toHaveBeenCalledTimes(1);
-			expect(pushState).toHaveBeenCalledWith(null, '', shouldIntercept);
-			expect(clickHandler).toHaveBeenCalled();
+			for (const url of shouldIntercept) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(loc).to.deep.include({ url });
+				expect(Route).to.have.been.calledOnce;
+				expect(pushState).to.have.been.calledWith(null, '', url);
+				expect(clickHandler).to.have.been.called;
+
+				Route.resetHistory();
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
 		});
 
-		it('should navigate clicks on links not matching the `limit` props (string)', async () => {
+		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
 			render(
-				html`
-					<${LocationProvider} limit="app">
-						<${Router}>
-							<${Route} default />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				`,
+				<LocationProvider limit="app">
+					<Router>
+						<Route default />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
 				scratch
 			);
+			Route.resetHistory();
 			await sleep(10);
 
-			const el = scratch.querySelector(`a[href="${shouldNavigate}"]`);
-			el.click();
-			await sleep(1);
-			expect(Route).not.toHaveBeenCalled();
-			expect(pushState).not.toHaveBeenCalled();
-			expect(clickHandler).toHaveBeenCalled();
+			for (const url of shouldNavigate) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(Route).not.to.have.been.called;
+				expect(pushState).not.to.have.been.called;
+				expect(clickHandler).to.have.been.called;
+
+				Route.resetHistory();
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
 		});
 
 		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
 			render(
-				html`
-					<${LocationProvider} limit={/^\/app/}>
-						<${Router}>
-							<${Route} default />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				`,
+				<LocationProvider limit={/^\/app/}>
+					<Router>
+						<Route default />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
 				scratch
 			);
+			Route.resetHistory();
 			await sleep(10);
 
-			const el = scratch.querySelector(`a[href="${shouldIntercept}"]`);
-			el.click();
-			await sleep(1);
-			expect(loc).toMatchObject({ url: shouldIntercept });
-			expect(Route).toHaveBeenCalledTimes(1);
-			expect(pushState).toHaveBeenCalledWith(null, '', shouldIntercept);
-			expect(clickHandler).toHaveBeenCalled();
+			for (const url of shouldIntercept) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(loc).to.deep.include({ url });
+				expect(Route).to.have.been.calledOnce;
+				expect(pushState).to.have.been.calledWith(null, '', url);
+				expect(clickHandler).to.have.been.called;
+
+				Route.resetHistory();
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
 		});
 
-		it('should navigate clicks on links not matching the `limit` props (regex)', async () => {
+		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
 			render(
-				html`
-					<${LocationProvider} limit={/^\/app/}>
-						<${Router}>
-							<${Route} default />
-						<//>
-						<${() => {
-							loc = useLocation();
-						}} />
-					<//>
-				`,
+				<LocationProvider limit={/^\/app/}>
+					<Router>
+						<Route default />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
 				scratch
 			);
+			Route.resetHistory();
 			await sleep(10);
 
-			const el = scratch.querySelector(`a[href="${shouldNavigate}"]`);
-			el.click();
-			await sleep(1);
-			expect(Route).not.toHaveBeenCalled();
-			expect(pushState).not.toHaveBeenCalled();
-			expect(clickHandler).toHaveBeenCalled();
+			for (const url of shouldNavigate) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(Route).not.to.have.been.called;
+				expect(pushState).not.to.have.been.called;
+				expect(clickHandler).to.have.been.called;
+
+				Route.resetHistory();
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
 		});
-	});
-
-	it.skip('should ignore links excluded by `limit`', async () => {
-		let loc;
-		const pushState = jest.spyOn(history, 'pushState');
-
-		// prevent actual navigations (not implemented in JSDOM)
-		const clickHandler = jest.fn(e => e.preventDefault());
-		addEventListener('click', clickHandler);
-
-		const Route = jest.fn(
-			() => html`
-				<div>
-					<a href="/app">Internal Link</a>
-					<a href="/site">External Link</a>
-				</div>
-			`
-		);
-
-		render(
-			html`
-				<${LocationProvider} limit="/app">
-					<${Router}>
-						<${Route} default />
-					<//>
-					<${() => {
-						loc = useLocation();
-					}} />
-				<//>
-			`,
-			scratch
-		);
-
-		await sleep(10);
-		Route.mockClear();
-		clickHandler.mockClear();
-		pushState.mockClear();
-
-		let el = scratch.querySelector('a[href="/app"]');
-		el.click();
-		await sleep(20);
-		expect(loc).toMatchObject({ url: '/app' });
-		expect(Route).toHaveBeenCalledTimes(1);
-		expect(pushState).toHaveBeenCalledWith(null, '', '/app');
-		expect(clickHandler).toHaveBeenCalled();
-
-		await sleep(10);
-		Route.mockClear();
-		clickHandler.mockClear();
-		pushState.mockClear();
-
-		el = scratch.querySelector('a[href="/site"]');
-		el.click();
-		await sleep(1);
-		expect(Route).not.toHaveBeenCalled();
-		expect(pushState).not.toHaveBeenCalled();
-		expect(clickHandler).toHaveBeenCalled();
-
-		Route.mockRestore();
-		pushState.mockRestore();
-		clickHandler.mockRestore();
-		removeEventListener('click', clickHandler);
 	});
 
 	it('should scroll to top when navigating forward', async () => {

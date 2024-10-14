@@ -21,7 +21,7 @@ const UPDATE = (state, url) => {
 		if (
 			!link ||
 			link.origin != location.origin ||
-			/^#/.test(link.getAttribute('href')) ||
+			/^#/.test(href) ||
 			!/^(_?self)?$/i.test(link.target) ||
 			limit && (typeof limit == 'string'
 				? !href.startsWith(limit)
