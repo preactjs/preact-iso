@@ -7,10 +7,8 @@
 	"types": "src/index.d.ts",
 	"exports": {
 		".": "./src/index.js",
-		"./router": "./src/router.js",
-		"./lazy": "./src/lazy.js",
 		"./prerender": "./src/prerender.js",
-		"./hydrate": "./src/hydrate.js"
+		"./package.json": "./package.json"
 	},
 	"license": "MIT",
 	"description": "Isomorphic utilities for Preact",
@@ -34,6 +32,11 @@
 	"peerDependencies": {
 		"preact": ">=10",
 		"preact-render-to-string": ">=6.4.0"
+	},
+	"peerDependenciesMeta": {
+		"preact-render-to-string": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.7",

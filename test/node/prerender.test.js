@@ -2,7 +2,7 @@ import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 import { html } from 'htm/preact';
 
-import { default as prerender } from '../../src/prerender.js';
+import { prerender } from '../../src/prerender.js';
 
 test('extracts links', async () => {
 	const App = () => html`
@@ -23,7 +23,7 @@ test('extracts links', async () => {
 test('appends iso data script', async () => {
 	const { html: h } = await prerender(html`<div />`);
 	// Empty for now, but used for hydration vs render detection
-	assert.match(h, /<script type="isodata"><\/script>/, 'missing iso data script tag');
+	assert.match(h, /<script id="isodata"><\/script>/, 'missing iso data script tag');
 });
 
 test.run();
