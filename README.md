@@ -82,6 +82,10 @@ export async function prerender(data) {
 
 A context provider that provides the current location to its children. This is required for the router to function.
 
+Props:
+
+-   `limit?: string | RegExp` - Sets a limit on the paths that the router will handle (intercept). If a path does not match the limit, either by starting with the provided string or matching the RegExp, the router will ignore it and default browser navigation will apply.
+
 Typically, you would wrap your entire app in this provider:
 
 ```js
