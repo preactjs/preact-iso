@@ -34,7 +34,7 @@ export async function prerender(vnode, options) {
 
 	try {
 		let html = await renderToStringAsync(vnode);
-		html += `<script type="isodata"></script>`;
+		html += `<script id="isodata"></script>`;
 		return { html, links };
 	} finally {
 		vnodeHook = null;
