@@ -84,7 +84,7 @@ A context provider that provides the current location to its children. This is r
 
 Props:
 
--   `limit?: string | RegExp` - Sets a limit on the paths that the router will handle (intercept). If a path does not match the limit, either by starting with the provided string or matching the RegExp, the router will ignore it and default browser navigation will apply.
+-   `scope?: string | RegExp` - Sets a scope for the paths that the router will handle (intercept). If a path does not match the scope, either by starting with the provided string or matching the RegExp, the router will ignore it and default browser navigation will apply.
 
 Typically, you would wrap your entire app in this provider:
 
@@ -92,7 +92,7 @@ Typically, you would wrap your entire app in this provider:
 import { LocationProvider } from 'preact-iso';
 
 const App = () => (
-    <LocationProvider>
+    <LocationProvider scope="/app">
         {/* Your app here */}
     </LocationProvider>
 );

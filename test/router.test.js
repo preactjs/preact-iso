@@ -582,7 +582,7 @@ describe('Router', () => {
 		}
 	});
 
-	describe('intercepted VS external links with `limit`', () => {
+	describe('intercepted VS external links with `scope`', () => {
 		const shouldIntercept = ['/app', '/app/deeper'];
 		const shouldNavigate = ['/site', '/site/deeper'];
 
@@ -617,9 +617,9 @@ describe('Router', () => {
 			pushState.resetHistory();
 		});
 
-		it('should intercept clicks on links matching the `limit` props (string)', async () => {
+		it('should intercept clicks on links matching the `scope` props (string)', async () => {
 			render(
-				<LocationProvider limit="/app">
+				<LocationProvider scope="/app">
 					<Router>
 						<Route default />
 					</Router>
@@ -647,7 +647,7 @@ describe('Router', () => {
 
 		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
 			render(
-				<LocationProvider limit="app">
+				<LocationProvider scope="app">
 					<Router>
 						<Route default />
 					</Router>
@@ -674,7 +674,7 @@ describe('Router', () => {
 
 		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
 			render(
-				<LocationProvider limit={/^\/app/}>
+				<LocationProvider scope={/^\/app/}>
 					<Router>
 						<Route default />
 					</Router>
@@ -702,7 +702,7 @@ describe('Router', () => {
 
 		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
 			render(
-				<LocationProvider limit={/^\/app/}>
+				<LocationProvider scope={/^\/app/}>
 					<Router>
 						<Route default />
 					</Router>

@@ -7,7 +7,7 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
-let push, limit;
+let push, scope;
 const UPDATE = (state, url) => {
 	push = undefined;
 	if (url && url.type === 'click') {
@@ -23,9 +23,9 @@ const UPDATE = (state, url) => {
 			link.origin != location.origin ||
 			/^#/.test(href) ||
 			!/^(_?self)?$/i.test(link.target) ||
-			limit && (typeof limit == 'string'
-				? !href.startsWith(limit)
-				: !limit.test(href)
+			scope && (typeof scope == 'string'
+				? !href.startsWith(scope)
+				: !scope.test(href)
 			)
 		) {
 			return state;
@@ -75,9 +75,13 @@ export const exec = (url, route, matches) => {
 	return matches;
 };
 
+/**
+ * @type {import('./router.d.ts').LocationProvider}
+ */
 export function LocationProvider(props) {
+	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
 	const [url, route] = useReducer(UPDATE, props.url || location.pathname + location.search);
-	if (props.limit) limit = props.limit;
+	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
 
 	const value = useMemo(() => {

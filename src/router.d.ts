@@ -1,7 +1,7 @@
 import { AnyComponent, FunctionComponent, VNode } from 'preact';
 
 export function LocationProvider(props: {
-	limit?: string | RegExp;
+	scope?: string | RegExp;
 	children?: VNode[];
 }): VNode;
 
