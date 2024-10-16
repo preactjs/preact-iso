@@ -3,14 +3,25 @@ import { useState, useRef } from 'preact/hooks';
 
 export default function lazy(load) {
 	let p, c;
-	return props => {
+
+	const loadModule = () =>
+		load().then(m => (c = (m && m.default) || m));
+
+	const LazyComponent = props => {
 		const [, update] = useState(0);
 		const r = useRef(c);
-		if (!p) p = load().then(m => (c = (m && m.default) || m));
+		if (!p) p = loadModule();
 		if (c !== undefined) return h(c, props);
 		if (!r.current) r.current = p.then(() => update(1));
 		throw p;
 	};
+
+	LazyComponent.preload = () => {
+		if (!p) p = loadModule();
+		return p;
+	}
+
+	return LazyComponent;
 }
 
 // See https://github.com/preactjs/preact/blob/88680e91ec0d5fc29d38554a3e122b10824636b6/compat/src/suspense.js#L5
