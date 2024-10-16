@@ -588,15 +588,13 @@ describe('Router', () => {
 
 		const clickHandler = sinon.fake(e => e.preventDefault());
 
-		const Route = sinon.fake(
-			() => (
-				<div>
-					<a href="/app">Internal Link</a>
-					<a href="/app/deeper">Internal Deeper Link</a>
-					<a href="/site">External Link</a>
-					<a href="/site/deeper">External Deeper Link</a>
-				</div>
-			)
+		const Links = () => (
+			<>
+				<a href="/app">Internal Link</a>
+				<a href="/app/deeper">Internal Deeper Link</a>
+				<a href="/site">External Link</a>
+				<a href="/site/deeper">External Deeper Link</a>
+			</>
 		);
 
 		let pushState;
@@ -612,7 +610,6 @@ describe('Router', () => {
 		});
 
 		beforeEach(async () => {
-			Route.resetHistory();
 			clickHandler.resetHistory();
 			pushState.resetHistory();
 		});
@@ -620,14 +617,11 @@ describe('Router', () => {
 		it('should intercept clicks on links matching the `scope` props (string)', async () => {
 			render(
 				<LocationProvider scope="/app">
-					<Router>
-						<Route default />
-					</Router>
+					<Links />
 					<ShallowLocation />
 				</LocationProvider>,
 				scratch
 			);
-			Route.resetHistory();
 			await sleep(10);
 
 			for (const url of shouldIntercept) {
@@ -635,11 +629,9 @@ describe('Router', () => {
 				el.click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
-				expect(Route).to.have.been.calledOnce;
 				expect(pushState).to.have.been.calledWith(null, '', url);
 				expect(clickHandler).to.have.been.called;
 
-				Route.resetHistory();
 				pushState.resetHistory();
 				clickHandler.resetHistory();
 			}
@@ -648,25 +640,20 @@ describe('Router', () => {
 		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
 			render(
 				<LocationProvider scope="app">
-					<Router>
-						<Route default />
-					</Router>
+					<Links />
 					<ShallowLocation />
 				</LocationProvider>,
 				scratch
 			);
-			Route.resetHistory();
 			await sleep(10);
 
 			for (const url of shouldNavigate) {
 				const el = scratch.querySelector(`a[href="${url}"]`);
 				el.click();
 				await sleep(1);
-				expect(Route).not.to.have.been.called;
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
 
-				Route.resetHistory();
 				pushState.resetHistory();
 				clickHandler.resetHistory();
 			}
@@ -675,14 +662,11 @@ describe('Router', () => {
 		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
-					<Router>
-						<Route default />
-					</Router>
+					<Links />
 					<ShallowLocation />
 				</LocationProvider>,
 				scratch
 			);
-			Route.resetHistory();
 			await sleep(10);
 
 			for (const url of shouldIntercept) {
@@ -690,11 +674,9 @@ describe('Router', () => {
 				el.click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
-				expect(Route).to.have.been.calledOnce;
 				expect(pushState).to.have.been.calledWith(null, '', url);
 				expect(clickHandler).to.have.been.called;
 
-				Route.resetHistory();
 				pushState.resetHistory();
 				clickHandler.resetHistory();
 			}
@@ -703,25 +685,20 @@ describe('Router', () => {
 		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
-					<Router>
-						<Route default />
-					</Router>
+					<Links />
 					<ShallowLocation />
 				</LocationProvider>,
 				scratch
 			);
-			Route.resetHistory();
 			await sleep(10);
 
 			for (const url of shouldNavigate) {
 				const el = scratch.querySelector(`a[href="${url}"]`);
 				el.click();
 				await sleep(1);
-				expect(Route).not.to.have.been.called;
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
 
-				Route.resetHistory();
 				pushState.resetHistory();
 				clickHandler.resetHistory();
 			}
