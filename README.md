@@ -205,11 +205,9 @@ Make a lazily-loaded version of a Component.
 import { lazy, LocationProvider, Router } from 'preact-iso';
 
 // Synchronous, not code-splitted:
-// import Home from './routes/home.js';
-// import Profile from './routes/profile.js';
+import Home from './routes/home.js';
 
 // Asynchronous, code-splitted:
-const Home = lazy(() => import('./routes/home.js'));
 const Profile = lazy(() => import('./routes/profile.js'));
 
 const App = () => (
@@ -220,6 +218,20 @@ const App = () => (
 		</Router>
 	</LocationProvider>
 );
+```
+
+The result of `lazy()` also exposes a `preload()` method that can be used to load the component before it's needed for rendering. Entirely optional, but can be useful on focus, mouse over, etc. to start loading the component a bit earlier than it otherwise would be.
+
+```js
+const Profile = lazy(() => import('./routes/profile.js'));
+
+function Home() {
+    return (
+        <a href="/profile" onMouseOver={() => Profile.preload()}>
+            Profile Page -- Hover over me to preload the module!
+        </a>
+    );
+}
 ```
 
 ### `ErrorBoundary`
