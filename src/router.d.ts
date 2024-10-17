@@ -1,6 +1,9 @@
-import { AnyComponent, FunctionComponent, VNode } from 'preact';
+import { AnyComponent, ComponentChildren, FunctionComponent, VNode } from 'preact';
 
-export const LocationProvider: FunctionComponent;
+export function LocationProvider(props: {
+	scope?: string | RegExp;
+	children?: ComponentChildren;
+}): VNode;
 
 type NestedArray<T> = Array<T | NestedArray<T>>;
 

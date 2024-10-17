@@ -505,7 +505,6 @@ describe('Router', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
 
-		// prevent actual navigations (not implemented in JSDOM)
 		const clickHandler = sinon.fake(e => e.preventDefault());
 
 		const Route = sinon.fake(
@@ -581,6 +580,129 @@ describe('Router', () => {
 				expect(clickHandler).to.have.been.called;
 			});
 		}
+	});
+
+	describe('intercepted VS external links with `scope`', () => {
+		const shouldIntercept = ['/app', '/app/deeper'];
+		const shouldNavigate = ['/site', '/site/deeper'];
+
+		const clickHandler = sinon.fake(e => e.preventDefault());
+
+		const Links = () => (
+			<>
+				<a href="/app">Internal Link</a>
+				<a href="/app/deeper">Internal Deeper Link</a>
+				<a href="/site">External Link</a>
+				<a href="/site/deeper">External Deeper Link</a>
+			</>
+		);
+
+		let pushState;
+
+		before(() => {
+			pushState = sinon.spy(history, 'pushState');
+			addEventListener('click', clickHandler);
+		});
+
+		after(() => {
+			pushState.restore();
+			removeEventListener('click', clickHandler);
+		});
+
+		beforeEach(async () => {
+			clickHandler.resetHistory();
+			pushState.resetHistory();
+		});
+
+		it('should intercept clicks on links matching the `scope` props (string)', async () => {
+			render(
+				<LocationProvider scope="/app">
+					<Links />
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			for (const url of shouldIntercept) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(loc).to.deep.include({ url });
+				expect(pushState).to.have.been.calledWith(null, '', url);
+				expect(clickHandler).to.have.been.called;
+
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
+		});
+
+		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
+			render(
+				<LocationProvider scope="app">
+					<Links />
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			for (const url of shouldNavigate) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(pushState).not.to.have.been.called;
+				expect(clickHandler).to.have.been.called;
+
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
+		});
+
+		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
+			render(
+				<LocationProvider scope={/^\/app/}>
+					<Links />
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			for (const url of shouldIntercept) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(loc).to.deep.include({ url });
+				expect(pushState).to.have.been.calledWith(null, '', url);
+				expect(clickHandler).to.have.been.called;
+
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
+		});
+
+		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
+			render(
+				<LocationProvider scope={/^\/app/}>
+					<Links />
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			for (const url of shouldNavigate) {
+				const el = scratch.querySelector(`a[href="${url}"]`);
+				el.click();
+				await sleep(1);
+				expect(pushState).not.to.have.been.called;
+				expect(clickHandler).to.have.been.called;
+
+				pushState.resetHistory();
+				clickHandler.resetHistory();
+			}
+		});
 	});
 
 	it('should scroll to top when navigating forward', async () => {

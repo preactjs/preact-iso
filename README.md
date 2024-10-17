@@ -82,13 +82,17 @@ export async function prerender(data) {
 
 A context provider that provides the current location to its children. This is required for the router to function.
 
+Props:
+
+-   `scope?: string | RegExp` - Sets a scope for the paths that the router will handle (intercept). If a path does not match the scope, either by starting with the provided string or matching the RegExp, the router will ignore it and default browser navigation will apply.
+
 Typically, you would wrap your entire app in this provider:
 
 ```js
 import { LocationProvider } from 'preact-iso';
 
 const App = () => (
-    <LocationProvider>
+    <LocationProvider scope="/app">
         {/* Your app here */}
     </LocationProvider>
 );
