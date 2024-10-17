@@ -1,8 +1,8 @@
-import { AnyComponent, FunctionComponent, VNode } from 'preact';
+import { AnyComponent, ComponentChildren, FunctionComponent, VNode } from 'preact';
 
 export function LocationProvider(props: {
 	scope?: string | RegExp;
-	children?: VNode[];
+	children?: ComponentChildren;
 }): VNode;
 
 type NestedArray<T> = Array<T | NestedArray<T>>;
