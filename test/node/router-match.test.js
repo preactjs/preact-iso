@@ -58,10 +58,26 @@ test('Optional param route', () => {
 });
 
 test('Optional rest param route "/:x*"', () => {
-	const accurateResult = execPath('/user', '/user/:id?');
-	assert.equal(accurateResult, { path: '/user', params: { id: undefined }, id: undefined, query: {} });
+	const matchedResult = execPath('/user', '/user/:id*');
+	assert.equal(matchedResult, { path: '/user', params: { id: undefined }, id: undefined, query: {} });
 
-	const inaccurateResult = execPath('/', '/user/:id?');
+	const matchedResultWithSlash = execPath('/user/foo/bar', '/user/:id*');
+	assert.equal(matchedResultWithSlash, {
+		path: '/user/foo/bar',
+		params: { id: 'foo/bar' },
+		id: 'foo/bar',
+		query: {}
+	});
+
+	const emptyResult = execPath('/user', '/user/:id*');
+	assert.equal(emptyResult, {
+		path: '/user',
+		params: { id: undefined },
+		id: undefined,
+		query: {}
+	});
+
+	const inaccurateResult = execPath('/', '/user/:id*');
 	assert.equal(inaccurateResult, undefined);
 });
 

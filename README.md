@@ -170,12 +170,21 @@ Paths are matched using a simple string matching algorithm. The following featur
 -   `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
     -   `/profile/:id` will match `/profile/123` and `/profile/abc`
     -   `/profile/:id?` will match `/profile` and `/profile/123`
+    -   `/profile/:id*` will match `/profile`, `/profile/123`, and `/profile/123/abc`
+    -   `/profile/:id+` will match `/profile/123`, `/profile/123/abc`
 -   `*` - Matches one or more URL segments
     -   `/profile/*` will match `/profile/123`, `/profile/123/abc`, etc.
 
 These can then be composed to create more complex routes:
 
 -   `/profile/:id/*` will match `/profile/123/abc`, `/profile/123/abc/def`, etc.
+
+The difference between `/:id*` and `/:id/*` is that in the former, the `id` param will include the entire path after it, while in the latter, the `id` is just the single path segment.
+
+-  `/profile/:id*`, with `/profile/123/abc`
+    -  `id` is `123/abc`
+-  `/profile/:id/*`, with `/profile/123/abc`
+    - `id` is `123`
 
 ### `useLocation`
 
