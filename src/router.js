@@ -16,13 +16,10 @@ const UPDATE = (state, url) => {
 			return state;
 		}
 
-		const link = url.target.closest('a[href]');
-		if (!link) {
-			return state;
-		}
-
-		const href = link.getAttribute('href');
+		const link = url.target.closest('a[href]'),
+			href = link && link.getAttribute('href');
 		if (
+			!link ||
 			link.origin != location.origin ||
 			/^#/.test(href) ||
 			!/^(_?self)?$/i.test(link.target) ||
