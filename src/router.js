@@ -17,7 +17,7 @@ const UPDATE = (state, url) => {
 		}
 
 		const link = url.target.closest('a[href]'),
-			href = link.getAttribute('href');
+			href = link && link.getAttribute('href');
 		if (
 			!link ||
 			link.origin != location.origin ||
