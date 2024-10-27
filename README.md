@@ -43,7 +43,7 @@ const App = () => (
 
 **Seamless Routing:** Switch switching between routes on the client, the Router is aware of asynchronous dependencies in routes. Instead of clearing the current route and showing a loading spinner while waiting for the next route (or its data), the router preserves the current route in-place until the incoming route has finished loading, then they are swapped.
 
-**Nested Routing:** Nested routes are supported by using multiple `Router` components. Partially matched routes end with a wildcard `/*` and the remaining value will be past to continue matching with if there are any further routes.
+**Nested Routing:** Nested routes are supported by using multiple `Router` components. Partially matched routes end with a wildcard `/*` and the remaining value will be passed to continue matching with if there are any further routes.
 
 ## Prerendering
 
