@@ -29,14 +29,11 @@ interface RouteHook {
 }
 export const useRoute: () => RouteHook;
 
-interface RoutableProps {
-	path?: string;
-	default?: boolean;
-}
+type RoutableProps =
+	| { path: string; default?: false; }
+	| { path?: never; default: true; }
 
-export interface RouteProps<Props> extends RoutableProps {
-	component: AnyComponent<Props>;
-}
+export type RouteProps<Props> = RoutableProps & { component: AnyComponent<Props> };
 
 export function Route<Props>(props: RouteProps<Props> & Partial<Props>): VNode;
 
