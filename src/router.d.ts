@@ -30,8 +30,8 @@ interface RouteHook {
 export const useRoute: () => RouteHook;
 
 type RoutableProps =
-	| { path: string; default?: never; }
-	| { path?: never; default: boolean; }
+	| { path: string; default?: false; }
+	| { path?: never; default: true; }
 
 export type RouteProps<Props> = RoutableProps & { component: AnyComponent<Props> };
 
