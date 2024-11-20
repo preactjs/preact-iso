@@ -1,3 +1,3 @@
-import { ComponentChild } from 'preact';
+import { hydrate } from 'preact';
 
-export default function hydrate(jsx: ComponentChild, parent?: Element | Document | ShadowRoot | DocumentFragment): void;
+export default hydrate;
