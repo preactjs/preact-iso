@@ -4,7 +4,7 @@ import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
 import { LocationProvider, Router } from '../src/router.js';
-import lazy from '../src/lazy.js';
+import lazy, { ErrorBoundary } from '../src/lazy.js';
 
 const expect = chai.expect;
 chai.use(sinonChai);
@@ -41,5 +41,22 @@ describe('lazy', () => {
 		expect(loadB).not.to.have.been.called;
 		await B.preload();
 		expect(loadB).to.have.been.calledOnce;
+	});
+
+	it('should forward refs', async () => {
+		const A = () => <h1>A</h1>;
+		const LazyA = lazy(() => Promise.resolve(A));
+
+		const ref = {};
+
+		render(
+			<ErrorBoundary>
+				<LazyA ref={ref} />
+			</ErrorBoundary>,
+			scratch
+		);
+		await new Promise(r => setTimeout(r, 1))
+
+		expect(ref.current.constructor).to.equal(A);
 	});
 });
