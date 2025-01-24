@@ -1,6 +1,15 @@
 import { h, options } from 'preact';
 import { useState, useRef } from 'preact/hooks';
 
+const oldDiff = options.__b;
+options.__b = (vnode) => {
+	if (vnode.type && vnode.type._forwarded && vnode.ref) {
+		vnode.props.ref = vnode.ref;
+		vnode.ref = null;
+	}
+	if (oldDiff) oldDiff(vnode);
+};
+
 export default function lazy(load) {
 	let p, c;
 
@@ -21,6 +30,7 @@ export default function lazy(load) {
 		return p;
 	}
 
+	LazyComponent._forwarded = true;
 	return LazyComponent;
 }
 
