@@ -7,6 +7,27 @@ export function LocationProvider(props: {
 
 type NestedArray<T> = Array<T | NestedArray<T>>;
 
+/**
+ * Check if a URL path matches against a URL path pattern.
+ * 
+ * Warning: This is an internal API exported only for testing purpose. API could change in future.
+ * @param url - URL path (e.g. /user/12345)
+ * @param route - URL pattern (e.g. /user/:id)
+ */
+export function exec(url: string, route: string, matches: {
+	params: {
+		[param: string]: string;
+	};
+	rest?: string;
+	[props: string]: string;
+}): {
+	params: {
+		[param: string]: string;
+	},
+	rest?: string;
+	[propsOrParam: string]: string;
+}
+
 export function Router(props: {
 	onRouteChange?: (url: string) => void;
 	onLoadEnd?: (url: string) => void;
