@@ -14,7 +14,7 @@ type NestedArray<T> = Array<T | NestedArray<T>>;
  * @param url - URL path (e.g. /user/12345)
  * @param route - URL pattern (e.g. /user/:id)
  */
-export function exec(url: string, route: string, matches: {
+export function exec(url: string, route: string, matches?: {
 	params: {
 		[param: string]: string;
 	};
