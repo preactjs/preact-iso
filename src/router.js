@@ -48,9 +48,10 @@ const UPDATE = (state, url) => {
 	return url;
 };
 
-export const exec = (url, route, matches) => {
+export const exec = (url, route, matches = {}) => {
 	url = url.split('/').filter(Boolean);
 	route = (route || '').split('/').filter(Boolean);
+	if (!matches.params) matches.params = {};
 	for (let i = 0, val, rest; i < Math.max(url.length, route.length); i++) {
 		let [, m, param, flag] = (route[i] || '').match(/^(:?)(.*?)([+*?]?)$/);
 		val = url[i];
