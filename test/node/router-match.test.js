@@ -1,7 +1,6 @@
 import { test } from 'uvu';
 import * as assert from 'uvu/assert';
 
-// @ts-expect-error - no types, not meant for public use
 import { exec } from '../../src/router.js';
 
 function execPath(path, pattern, opts) {
@@ -28,7 +27,10 @@ test('Param rest segment', () => {
 	const accurateResult = execPath('/user/foo', '/user/*');
 	assert.equal(accurateResult, { path: '/user/foo', params: {}, query: {}, rest: '/foo' });
 
-	const inaccurateResult = execPath('/', '/user/:id/*');
+	const accurateResult2 = execPath('/user/foo/bar/baz', '/user/*');
+	assert.equal(accurateResult2, { path: '/user/foo/bar/baz', params: {}, query: {}, rest: '/foo/bar/baz' });
+
+	const inaccurateResult = execPath('/user', '/user/*');
 	assert.equal(inaccurateResult, undefined);
 });
 
