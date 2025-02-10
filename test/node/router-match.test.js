@@ -25,8 +25,11 @@ test('Param route', () => {
 });
 
 test('Param rest segment', () => {
-	const accurateResult = execPath('/user/foo', '/user/*');
-	assert.equal(accurateResult, { path: '/user/foo', params: {}, query: {}, rest: '/foo' });
+	const accurateResult = execPath('/user', '/user/*');
+	assert.equal(accurateResult, { path: '/user', params: {}, query: {}, rest: '/' });
+
+	const accurateResult2 = execPath('/user/foo', '/user/*');
+	assert.equal(accurateResult2, { path: '/user/foo', params: {}, query: {}, rest: '/foo' });
 
 	const inaccurateResult = execPath('/', '/user/:id/*');
 	assert.equal(inaccurateResult, undefined);
