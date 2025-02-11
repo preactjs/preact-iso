@@ -51,9 +51,9 @@ export function locationStub(path) {
 	const u = new URL(path, 'http://localhost');
 	for (const i in u) {
 		try {
-            globalThis.location[i] = /to[A-Z]/.test(i)
-                ? u[i].bind(u)
-                : String(u[i]);
+			globalThis.location[i] = /to[A-Z]/.test(i)
+				? u[i].bind(u)
+				: String(u[i]);
 		} catch {}
 	}
 }
