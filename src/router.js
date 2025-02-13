@@ -135,8 +135,6 @@ export function Router(props) {
 	// was the most recent render successful (did not suspend):
 	const didSuspend = /** @type {RefObject<boolean>} */ (useRef());
 	didSuspend.current = false;
-	// has the route component changed
-	const routeChanged = useRef(false);
 
 	let pathRoute, defaultRoute, matchProps;
 	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
@@ -147,7 +145,7 @@ export function Router(props) {
 
 	/** @type {VNode<any> | undefined} */
 	let incoming = pathRoute || defaultRoute;
-	useMemo(() => {
+	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
 
 		// Only mark as an update if the route component changed.
@@ -156,8 +154,9 @@ export function Router(props) {
 			// This hack prevents Preact from diffing when we swap `cur` to `prev`:
 			if (this.__v && this.__v.__k) this.__v.__k.reverse();
 			count.current++;
-			routeChanged.current = true;
-		} else routeChanged.current = false;
+			return true;
+		}
+		return false;
 	}, [url]);
 
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
@@ -248,8 +247,8 @@ export function Router(props) {
 		isLoading.current = false;
 	}, [path, wasPush, c]);
 
-	// Note: curChildren MUST render first in order to set didSuspend & prev.
-	return routeChanged.current
+	// Note: cur MUST render first in order to set didSuspend & prev.
+	return routeChanged
 		? [h(RenderRef, { r: cur }), h(RenderRef, { r: prev })]
 		: h(RenderRef, { r: cur });
 }
