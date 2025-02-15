@@ -42,6 +42,7 @@ options.__e = (err, newVNode, oldVNode) => {
 		while ((v = v.__)) {
 			if (v.__c && v.__c.__c) {
 				if (newVNode.__e == null) {
+					newVNode.__c.__z = [oldVNode.__e];
 					newVNode.__e = oldVNode.__e; // ._dom
 					newVNode.__k = oldVNode.__k; // ._children
 				}
