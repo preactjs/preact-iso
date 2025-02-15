@@ -58,8 +58,10 @@ describe('lazy', () => {
 		await new Promise(r => setTimeout(r, 1))
 
 		if (ref.current instanceof A) {
+			// v10
 			expect(ref.current.constructor).to.equal(A);
 		} else {
+			// v11+
 			expect(ref.current).to.equal(scratch.firstChild);
 		}
 	});
