@@ -217,7 +217,7 @@ Specific to the `Route` component:
 
 Paths are matched using a simple string matching algorithm. The following features may be used:
 
-  - `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
+  - `:param` - Matches any URL segment, binding the value to the label (can extract this value as `pathParams` from `useLocation()`)
     - `/profile/:id` will match `/profile/123` and `/profile/abc`
     - `/profile/:id?` will match `/profile` and `/profile/123`
     - `/profile/:id*` will match `/profile`, `/profile/123`, and `/profile/123/abc`
@@ -244,18 +244,9 @@ Returns an object with the following properties:
 
   - `url: string` - The current path & search params
   - `path: string` - The current path
-  - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+  - `pathParams: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
+  - `searchParams: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
   - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
-
-### `useRoute`
-
-A hook to access current route information. Unlike `useLocation`, this hook only works within `<Router>` components.
-
-Returns an object with the following properties:
-
-  - `path: string` - The current path
-  - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
-  - `params: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
 
 ### `lazy`
 
