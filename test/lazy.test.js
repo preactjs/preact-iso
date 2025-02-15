@@ -57,7 +57,7 @@ describe('lazy', () => {
 		);
 		await new Promise(r => setTimeout(r, 1))
 
-		if (ref.current instanceof A) {
+		if (ref.current.constructor === A) {
 			// v10
 			expect(ref.current.constructor).to.equal(A);
 		} else {
