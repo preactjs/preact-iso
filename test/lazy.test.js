@@ -44,7 +44,7 @@ describe('lazy', () => {
 	});
 
 	it('should forward refs', async () => {
-		const A = () => <h1>A</h1>;
+		const A = (props) => <h1 ref={props.ref}>A</h1>;
 		const LazyA = lazy(() => Promise.resolve(A));
 
 		const ref = {};
@@ -57,6 +57,13 @@ describe('lazy', () => {
 		);
 		await new Promise(r => setTimeout(r, 1))
 
-		expect(ref.current.constructor).to.equal(A);
+		if (ref.current.constructor === A) {
+			// v10
+			expect(ref.current.constructor).to.equal(A);
+		} else {
+			// v11+
+			expect(ref.current).to.equal(scratch.firstChild);
+		}
 	});
 });
+
