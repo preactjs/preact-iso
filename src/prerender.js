@@ -25,7 +25,7 @@ export async function prerender(vnode, options) {
 		vnode = cloneElement(vnode, props);
 	}
 
-	let links = new Set();
+	const links = new Set();
 	vnodeHook = ({ type, props }) => {
 		if (type === 'a' && props && props.href && (!props.target || props.target === '_self')) {
 			links.add(props.href);
@@ -33,8 +33,7 @@ export async function prerender(vnode, options) {
 	};
 
 	try {
-		let html = await renderToStringAsync(vnode);
-		html += `<script id="isodata"></script>`;
+		const html = await renderToStringAsync(vnode);
 		return { html, links };
 	} finally {
 		vnodeHook = null;
