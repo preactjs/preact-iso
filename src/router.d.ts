@@ -1,4 +1,4 @@
-import { AnyComponent, ComponentChildren, FunctionComponent, VNode } from 'preact';
+import { AnyComponent, ComponentChildren, VNode } from 'preact';
 
 export function LocationProvider(props: {
 	scope?: string | RegExp;
@@ -33,6 +33,7 @@ export function Router(props: {
 	onLoadEnd?: (url: string) => void;
 	onLoadStart?: (url: string) => void;
 	children?: NestedArray<VNode>;
+	mutable?: boolean;
 }): VNode;
 
 interface LocationHook {

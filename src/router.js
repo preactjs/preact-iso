@@ -1,5 +1,5 @@
-import { h, createContext, cloneElement, toChildArray } from 'preact';
-import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
+import { cloneElement, createContext, h, toChildArray } from 'preact';
+import { useContext, useLayoutEffect, useMemo, useReducer, useRef } from 'preact/hooks';
 
 /**
  * @template T
@@ -114,7 +114,7 @@ export function LocationProvider(props) {
 
 const RESOLVED = Promise.resolve();
 /** @this {import('./internal.d.ts').AugmentedComponent} */
-export function Router(props) {
+export function Router({mutable = false, ...props}) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
 	const { url, query, wasPush, path } = useLocation();
@@ -136,17 +136,30 @@ export function Router(props) {
 	const didSuspend = /** @type {RefObject<boolean>} */ (useRef());
 	didSuspend.current = false;
 
-	let pathRoute, defaultRoute, matchProps;
-	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
-		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
-		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
-		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
-	});
+	let pathRoute, defaultRoute, matchProps, incoming;
+	function getIncoming() {
+		toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
+			const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
+			if (matches) return (pathRoute = cloneElement(vnode, matchProps));
+			if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
+		});
+	
+		/** @type {VNode<any> | undefined} */
+		return pathRoute || defaultRoute;
+	}
 
-	/** @type {VNode<any> | undefined} */
-	let incoming = pathRoute || defaultRoute;
+	if(mutable) {
+		incoming = getIncoming()
+	}
+	
 	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
+			
+		if(!mutable) {
+			incoming = getIncoming();
+			// @ts-ignore
+			cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
+		}
 
 		// Only mark as an update if the route component changed.
 		const outgoing = prev.current && prev.current.props.children;
@@ -157,12 +170,16 @@ export function Router(props) {
 			return true;
 		}
 		return false;
-	}, [url]);
+	}, [url, mutable]);
 
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
 	const isHydratingBool = cur.current && cur.current.__h;
-	// @ts-ignore
-	cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
+	
+	if(mutable) {
+		// @ts-ignore
+		cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
+	}
+
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
