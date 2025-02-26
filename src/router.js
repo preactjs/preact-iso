@@ -145,8 +145,13 @@ export function Router(props) {
 
 	/** @type {VNode<any> | undefined} */
 	let incoming = pathRoute || defaultRoute;
+
+	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
+	const isHydratingBool = cur.current && cur.current.__h;
 	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
+
+		cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
 
 		// Only mark as an update if the route component changed.
 		const outgoing = prev.current && prev.current.props.children;
@@ -157,12 +162,8 @@ export function Router(props) {
 			return true;
 		}
 		return false;
-	}, [url]);
+	}, [url, JSON.stringify(matchProps)]);
 
-	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
-	const isHydratingBool = cur.current && cur.current.__h;
-	// @ts-ignore
-	cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
 	if (isHydratingSuspense) {
 		cur.current.__u |= MODE_HYDRATE;
 		cur.current.__u |= MODE_SUSPENDED;
