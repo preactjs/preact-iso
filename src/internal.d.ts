@@ -1,3 +1,5 @@
+/// <reference types="navigation-api-types" />
+
 export interface AugmentedComponent extends Component<any, any> {
 	__v: VNode;
 	__c: (error: Promise<void>, suspendingVNode: VNode) => void;
