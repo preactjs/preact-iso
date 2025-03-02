@@ -40,7 +40,6 @@ interface LocationHook {
 	path: string;
 	pathParams: Record<string, string>;
 	searchParams: Record<string, string>;
-	route: (url: string, replace?: boolean) => void;
 }
 export const useLocation: () => LocationHook;
 
