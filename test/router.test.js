@@ -251,6 +251,7 @@ describe('Router', () => {
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
+		expect(B).to.have.been.calledOnce;
 		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
 
 		B.resetHistory();
@@ -277,6 +278,7 @@ describe('Router', () => {
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>C</h1>');
+		expect(C).to.have.been.calledOnce;
 		expect(C).to.have.been.calledWith({ path: '/c', query: {}, params: {}, rest: '' });
 
 		// "instant" routing to already-loaded routes
