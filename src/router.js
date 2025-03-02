@@ -7,8 +7,6 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
-/** @type {boolean} */
-let push;
 /** @type {string | RegExp | undefined} */
 let scope;
 
@@ -23,45 +21,23 @@ function isInScope(href) {
 	);
 }
 
+
 /**
  * @param {string} state
- * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
+ * @param {NavigateEvent} e
  */
-function handleNav(state, action) {
-	let url = '';
-	push = undefined;
-	if (action && action.type === 'click') {
-		// ignore events the browser takes care of already:
-		if (action.ctrlKey || action.metaKey || action.altKey || action.shiftKey || action.button !== 0) {
-			return state;
-		}
+function handleNav(state, e) {
+	if (!e.canIntercept) return state;
+	if (e.hashChange || e.downloadRequest !== null) return state;
 
-		const link = action.composedPath().find(el => el.nodeName == 'A' && el.href),
-			href = link && link.getAttribute('href');
-		if (
-			!link ||
-			link.origin != location.origin ||
-			/^#/.test(href) ||
-			!/^(_?self)?$/i.test(link.target) ||
-			!isInScope(href)
-		) {
-			return state;
-		}
-
-		push = true;
-		action.preventDefault();
-		url = link.href.replace(location.origin, '');
-	} else if (action && action.url) {
-		push = !action.replace;
-		url = action.url;
-	} else {
-		url = location.pathname + location.search;
+	const url = new URL(e.destination.url);
+	if (!isInScope(url.href)) {
+		return state;
 	}
 
-	if (push === true) history.pushState(null, '', url);
-	else if (push === false) history.replaceState(null, '', url);
-	return url;
-};
+	e.intercept();
+	return url.href.replace(url.origin, '');
+}
 
 export const exec = (url, route, matches = {}) => {
 	url = url.split('/').filter(Boolean);
@@ -99,7 +75,6 @@ export const exec = (url, route, matches = {}) => {
 export function LocationProvider(props) {
 	const [url, route] = useReducer(handleNav, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
-	const wasPush = push === true;
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
@@ -110,18 +85,14 @@ export function LocationProvider(props) {
 			path,
 			pathParams: {},
 			searchParams: Object.fromEntries(u.searchParams),
-			route: (url, replace) => route({ url, replace }),
-			wasPush
 		};
 	}, [url]);
 
 	useLayoutEffect(() => {
-		addEventListener('click', route);
-		addEventListener('popstate', route);
+		navigation.addEventListener('navigate', route);
 
 		return () => {
-			removeEventListener('click', route);
-			removeEventListener('popstate', route);
+			navigation.removeEventListener('navigate', route);
 		};
 	}, []);
 
@@ -133,7 +104,7 @@ const RESOLVED = Promise.resolve();
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
-	const { url, path, pathParams, searchParams, wasPush } = useLocation();
+	const { url, path, pathParams, searchParams } = useLocation();
 	if (!url) {
 		throw new Error(`preact-iso's <Router> must be used within a <LocationProvider>, see: https://github.com/preactjs/preact-iso#locationprovider`);
 	}
@@ -257,7 +228,7 @@ export function Router(props) {
 
 		// The route is loaded and rendered.
 		if (prevRoute.current !== path) {
-			if (wasPush) scrollTo(0, 0);
+			scrollTo(0, 0);
 			if (props.onRouteChange) props.onRouteChange(url);
 
 			prevRoute.current = path;
@@ -265,7 +236,7 @@ export function Router(props) {
 
 		if (props.onLoadEnd && isLoading.current) props.onLoadEnd(url);
 		isLoading.current = false;
-	}, [path, wasPush, c]);
+	}, [path, c]);
 
 	// Note: cur MUST render first in order to set didSuspend & prev.
 	return routeChanged
@@ -282,7 +253,7 @@ const RenderRef = ({ r }) => r.current;
 Router.Provider = LocationProvider;
 
 LocationProvider.ctx = createContext(
-	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
+	/** @type {import('./router.d.ts').LocationHook}} */ ({})
 );
 const RouterContext = createContext(
 	/** @type {{ rest: string }} */ ({})
