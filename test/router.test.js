@@ -635,7 +635,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
+		it('should allow default browser navigation for links not matching the `scope` props (string)', async () => {
 			render(
 				<LocationProvider scope="app">
 					<Links />
@@ -655,7 +655,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
+		it('should intercept clicks on links matching the `scope` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
 					<Links />
@@ -676,7 +676,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
+		it('should allow default browser navigation for links not matching the `scope` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
 					<Links />
