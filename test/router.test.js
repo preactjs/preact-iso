@@ -14,8 +14,8 @@ chai.use(sinonChai);
 
 /**
  * Usage:
- * - `await sleep(1)` for nav + loc/pushState check
- * - `await sleep(10)` for nav + component load check
+ * - `await sleep(1)` for nav + loc/pushState/sync component check
+ * - `await sleep(10)` for nav + async component check
  */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -402,7 +402,7 @@ describe('Router', () => {
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
-		await sleep(10);
+		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
@@ -418,7 +418,7 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
+		const A = sinon.fake(() => route('A'));
 		const B = sinon.fake(groggy(() => route('B'), 1));
 		const loadStart = sinon.fake();
 		const loadEnd = sinon.fake();
@@ -441,15 +441,12 @@ describe('Router', () => {
 			scratch
 		);
 
-		await sleep(10);
-
 		A.resetHistory();
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
 
 		loc.route('/b');
-
 		await sleep(1);
 
 		expect(loadStart).to.have.been.calledWith('/b');
@@ -460,7 +457,6 @@ describe('Router', () => {
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
-
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
@@ -498,6 +494,7 @@ describe('Router', () => {
 
 		await sleep(10);
 
+		expect(loadEnd).to.have.been.calledWith('/');
 		loadEnd.resetHistory();
 
 		set('2');
@@ -716,7 +713,7 @@ describe('Router', () => {
 		Route.resetHistory();
 
 		loc.route('/programmatic');
-		await sleep(10);
+		await sleep(1);
 
 		expect(loc).to.deep.include({ url: '/programmatic' });
 		expect(scrollTo).to.have.been.calledWith(0, 0);
@@ -726,7 +723,7 @@ describe('Router', () => {
 		scrollTo.resetHistory();
 
 		scratch.querySelector('a').click();
-		await sleep(10);
+		await sleep(1);
 
 		expect(loc).to.deep.include({ url: '/link' });
 		expect(scrollTo).to.have.been.calledWith(0, 0);
@@ -762,7 +759,7 @@ describe('Router', () => {
 		Route.resetHistory();
 
 		scratch.querySelector('a[href="#foo"]').click();
-		await sleep(10);
+		await sleep(1);
 
 		// NOTE: we don't (currently) propagate in-page anchor navigations into context, to avoid useless renders.
 		expect(loc).to.deep.include({ url: '/' });
@@ -770,9 +767,8 @@ describe('Router', () => {
 		expect(pushState).not.to.have.been.called;
 		expect(location.hash).to.equal('#foo');
 
-
 		scratch.querySelector('a[href="/other#bar"]').click();
-		await sleep(10);
+		await sleep(1);
 
 		expect(Route).to.have.been.calledOnce;
 		expect(loc).to.deep.include({ url: '/other#bar', path: '/other' });
