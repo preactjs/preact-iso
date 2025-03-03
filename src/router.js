@@ -1,4 +1,4 @@
-import { h, createContext, cloneElement, toChildArray } from 'preact';
+import { h, Fragment, createContext, cloneElement, toChildArray } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
@@ -169,10 +169,10 @@ export function Router(props) {
 	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
 
-		cur.current = incoming;
+		cur.current = /** @type {VNode<any>} */ (h(Fragment, { key: path }, incoming));
 
 		// Only mark as an update if the route component changed.
-		const outgoing = prev.current;
+		const outgoing = prev.current && prev.current.props.children;
 		if (!outgoing || !incoming || incoming.type !== outgoing.type || incoming.props.component !== outgoing.props.component) {
 			// This hack prevents Preact from diffing when we swap `cur` to `prev`:
 			if (this.__v && this.__v.__k) this.__v.__k.reverse();
