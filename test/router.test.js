@@ -12,6 +12,11 @@ import './setup.js';
 const expect = chai.expect;
 chai.use(sinonChai);
 
+/**
+ * Usage:
+ * - `await sleep(1)` for nav + loc/pushState/sync component check
+ * - `await sleep(10)` for nav + async component check
+ */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // delayed lazy()
@@ -335,8 +340,6 @@ describe('Router', () => {
 			scratch
 		);
 
-		await sleep(10);
-
 		expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
 		expect(renderRefCount).to.equal(2);
 
@@ -401,7 +404,7 @@ describe('Router', () => {
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
-		await sleep(10);
+		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
@@ -417,7 +420,7 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
+		const A = sinon.fake(() => route('A'));
 		const B = sinon.fake(groggy(() => route('B'), 1));
 		const loadStart = sinon.fake();
 		const loadEnd = sinon.fake();
@@ -440,15 +443,12 @@ describe('Router', () => {
 			scratch
 		);
 
-		await sleep(10);
-
 		A.resetHistory();
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
 
 		loc.route('/b');
-
 		await sleep(1);
 
 		expect(loadStart).to.have.been.calledWith('/b');
@@ -459,7 +459,6 @@ describe('Router', () => {
 		loadStart.resetHistory();
 		loadEnd.resetHistory();
 		routeChange.resetHistory();
-
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
@@ -497,6 +496,7 @@ describe('Router', () => {
 
 		await sleep(10);
 
+		expect(loadEnd).to.have.been.calledWith('/');
 		loadEnd.resetHistory();
 
 		set('2');
@@ -543,7 +543,6 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			await sleep(10);
 			Route.resetHistory();
 			clickHandler.resetHistory();
 			pushState.resetHistory();
@@ -554,8 +553,6 @@ describe('Router', () => {
 		// these should all be intercepted by the router.
 		for (const target of shouldIntercept) {
 			it(`should intercept clicks on links with ${getName(target)}`, async () => {
-				await sleep(10);
-
 				const sel = target == null ? `a:not([target])` : `a[target="${target}"]`;
 				const el = scratch.querySelector(sel);
 				if (!el) throw Error(`Unable to find link: ${sel}`);
@@ -572,8 +569,6 @@ describe('Router', () => {
 		// these should all navigate.
 		for (const target of shouldNavigate) {
 			it(`should allow default browser navigation for links with ${getName(target)}`, async () => {
-				await sleep(10);
-
 				const sel = target == null ? `a:not([target])` : `a[target="${target}"]`;
 				const el = scratch.querySelector(sel);
 				if (!el) throw Error(`Unable to find link: ${sel}`);
@@ -626,11 +621,9 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			await sleep(10);
 
 			for (const url of shouldIntercept) {
-				const el = scratch.querySelector(`a[href="${url}"]`);
-				el.click();
+				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
 				expect(pushState).to.have.been.calledWith(null, '', url);
@@ -641,7 +634,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should allow default browser navigation for links not matching the `limit` props (string)', async () => {
+		it('should allow default browser navigation for links not matching the `scope` props (string)', async () => {
 			render(
 				<LocationProvider scope="app">
 					<Links />
@@ -649,11 +642,9 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			await sleep(10);
 
 			for (const url of shouldNavigate) {
-				const el = scratch.querySelector(`a[href="${url}"]`);
-				el.click();
+				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
@@ -663,7 +654,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should intercept clicks on links matching the `limit` props (regex)', async () => {
+		it('should intercept clicks on links matching the `scope` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
 					<Links />
@@ -671,11 +662,9 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			await sleep(10);
 
 			for (const url of shouldIntercept) {
-				const el = scratch.querySelector(`a[href="${url}"]`);
-				el.click();
+				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
 				expect(pushState).to.have.been.calledWith(null, '', url);
@@ -686,7 +675,7 @@ describe('Router', () => {
 			}
 		});
 
-		it('should allow default browser navigation for links not matching the `limit` props (regex)', async () => {
+		it('should allow default browser navigation for links not matching the `scope` props (regex)', async () => {
 			render(
 				<LocationProvider scope={/^\/app/}>
 					<Links />
@@ -694,11 +683,9 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			await sleep(10);
 
 			for (const url of shouldNavigate) {
-				const el = scratch.querySelector(`a[href="${url}"]`);
-				el.click();
+				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
@@ -723,14 +710,13 @@ describe('Router', () => {
 			scratch
 		);
 
-		await sleep(20);
-
 		expect(scrollTo).not.to.have.been.called;
 		expect(Route).to.have.been.calledOnce;
 		Route.resetHistory();
 
 		loc.route('/programmatic');
-		await sleep(10);
+		await sleep(1);
+
 		expect(loc).to.deep.include({ url: '/programmatic' });
 		expect(scrollTo).to.have.been.calledWith(0, 0);
 		expect(scrollTo).to.have.been.calledOnce;
@@ -739,14 +725,14 @@ describe('Router', () => {
 		scrollTo.resetHistory();
 
 		scratch.querySelector('a').click();
-		await sleep(10);
+		await sleep(1);
+
 		expect(loc).to.deep.include({ url: '/link' });
 		expect(scrollTo).to.have.been.calledWith(0, 0);
 		expect(scrollTo).to.have.been.calledOnce;
 		expect(Route).to.have.been.calledOnce;
 		Route.resetHistory();
 
-		await sleep(10);
 		scrollTo.restore();
 	});
 
@@ -773,20 +759,19 @@ describe('Router', () => {
 
 		expect(Route).to.have.been.calledOnce;
 		Route.resetHistory();
-		await sleep(20);
 
 		scratch.querySelector('a[href="#foo"]').click();
-		await sleep(20);
+		await sleep(1);
+
 		// NOTE: we don't (currently) propagate in-page anchor navigations into context, to avoid useless renders.
 		expect(loc).to.deep.include({ url: '/' });
 		expect(Route).not.to.have.been.called;
 		expect(pushState).not.to.have.been.called;
 		expect(location.hash).to.equal('#foo');
 
-		await sleep(10);
-
 		scratch.querySelector('a[href="/other#bar"]').click();
-		await sleep(10);
+		await sleep(1);
+
 		expect(Route).to.have.been.calledOnce;
 		expect(loc).to.deep.include({ url: '/other#bar', path: '/other' });
 		expect(pushState).to.have.been.called;
@@ -813,10 +798,10 @@ describe('Router', () => {
 
 		expect(Route).to.have.been.calledOnce;
 		Route.resetHistory();
-		await sleep(20);
 
 		scratch.querySelector('a[href="/foo#foo"]').click();
-		await sleep(20);
+		await sleep(10);
+
 		expect(Route).to.have.been.calledOnce;
 		expect(loc).to.deep.include({ url: '/foo#foo', path: '/foo' });
 		expect(pushState).to.have.been.called;
@@ -849,7 +834,7 @@ describe('Router', () => {
 		);
 
 		scratch.querySelector('a[href="/foo/bar/bob"]').click();
-		await sleep(20);
+		await sleep(1);
 		expect(route).to.deep.include({ path: '/bob', params: { id: 'bar' } });
 	});
 
@@ -878,7 +863,7 @@ describe('Router', () => {
 		);
 
 		scratch.querySelector('a[href="/foo/bar/bob"]').click();
-		await sleep(20);
+		await sleep(1);
 		expect(params).to.deep.include({ id: 'bar' });
 	});
 
@@ -896,7 +881,6 @@ describe('Router', () => {
 			scratch
 		);
 
-		await sleep(20);
 		loc.route("/foo", true);
 		expect(pushState).not.to.have.been.called;
 		expect(replaceState).to.have.been.calledWith(null, "", "/foo");
