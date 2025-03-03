@@ -115,7 +115,7 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '', test: '2' });
+		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, test: '2' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -144,7 +144,7 @@ describe('Router', () => {
 		render(<App />, scratch);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '', test: '2' });
+		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, test: '2' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -154,7 +154,7 @@ describe('Router', () => {
 		set('3')
 		await sleep(1);
 
-		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '', test: '3' });
+		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, test: '3' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -184,7 +184,7 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(Home).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 		expect(Profiles).not.to.have.been.called;
 		expect(Profile).not.to.have.been.called;
 		expect(Fallback).not.to.have.been.called;
@@ -200,7 +200,7 @@ describe('Router', () => {
 
 		expect(scratch).to.have.property('textContent', 'Profiles');
 		expect(Home).not.to.have.been.called;
-		expect(Profiles).to.have.been.calledWith({ path: '/profiles', searchParams: {}, pathParams: {}, rest: '' });
+		expect(Profiles).to.have.been.calledWith({ path: '/profiles', searchParams: {}, pathParams: {} });
 		expect(Profile).not.to.have.been.called;
 		expect(Fallback).not.to.have.been.called;
 
@@ -218,7 +218,7 @@ describe('Router', () => {
 		expect(Home).not.to.have.been.called;
 		expect(Profiles).not.to.have.been.called;
 		expect(Profile).to.have.been.calledWith(
-			{ path: '/profiles/bob', searchParams: {}, pathParams: { id: 'bob' }, id: 'bob', rest: '' },
+			{ path: '/profiles/bob', searchParams: {}, pathParams: { id: 'bob' }, id: 'bob' },
 		);
 		expect(Fallback).not.to.have.been.called;
 
@@ -237,7 +237,7 @@ describe('Router', () => {
 		expect(Profiles).not.to.have.been.called;
 		expect(Profile).not.to.have.been.called;
 		expect(Fallback).to.have.been.calledWith(
-			{ default: true, path: '/other', searchParams: { a: 'b', c: 'd' }, pathParams: {}, rest: '' },
+			{ default: true, path: '/other', searchParams: { a: 'b', c: 'd' }, pathParams: {} },
 		);
 
 		expect(loc).to.deep.include({
@@ -274,13 +274,13 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('innerHTML', '');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 
 		A.resetHistory();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 
 		A.resetHistory();
 		loc.route('/b');
@@ -293,14 +293,14 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		// We should never re-invoke <A /> while loading <B /> (that would be a remount of the old route):
 		expect(A).not.to.have.been.called;
-		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {}, rest: '' });
+		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {} });
 
 		B.resetHistory();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		expect(B).to.have.been.calledOnce;
-		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {}, rest: '' });
+		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {} });
 
 		B.resetHistory();
 		loc.route('/c');
@@ -319,14 +319,14 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		// We should never re-invoke <B /> while loading <C /> (that would be a remount of the old route):
 		expect(B).not.to.have.been.called;
-		expect(C).to.have.been.calledWith({ path: '/c', searchParams: {}, pathParams: {}, rest: '' });
+		expect(C).to.have.been.calledWith({ path: '/c', searchParams: {}, pathParams: {} });
 
 		C.resetHistory();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>C</h1>');
 		expect(C).to.have.been.calledOnce;
-		expect(C).to.have.been.calledWith({ path: '/c', searchParams: {}, pathParams: {}, rest: '' });
+		expect(C).to.have.been.calledWith({ path: '/c', searchParams: {}, pathParams: {} });
 
 		// "instant" routing to already-loaded routes
 
@@ -338,7 +338,7 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		expect(C).not.to.have.been.called;
 		expect(B).to.have.been.calledOnce;
-		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {}, rest: '' });
+		expect(B).to.have.been.calledWith({ path: '/b', searchParams: {}, pathParams: {} });
 
 		A.resetHistory();
 		B.resetHistory();
@@ -348,7 +348,7 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		expect(B).not.to.have.been.called;
 		expect(A).to.have.been.calledOnce;
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 	});
 
 	it('rerenders same-component routes rather than swap', async () => {
@@ -437,7 +437,7 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('innerHTML', '');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 		expect(loadStart).to.have.been.calledWith('/');
 		expect(loadEnd).not.to.have.been.called;
 		expect(routeChange).not.to.have.been.called;
@@ -449,7 +449,7 @@ describe('Router', () => {
 		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 		expect(loadStart).not.to.have.been.called;
 		expect(loadEnd).to.have.been.calledWith('/');
 		expect(routeChange).not.to.have.been.called;
@@ -1044,7 +1044,7 @@ describe('hydration', () => {
 		mutationObserver.observe(scratch, { childList: true, subtree: true });
 
 		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 		const oldOptionsVnode = options.__b;
 		let hasMatched = false;
 		options.__b = (vnode) => {
@@ -1068,7 +1068,7 @@ describe('hydration', () => {
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {}, rest: '' });
+		expect(A).to.have.been.calledWith({ path: '/', searchParams: {}, pathParams: {} });
 		expect(mutations).to.have.length(0);
 
 		options.__b = oldOptionsVnode;

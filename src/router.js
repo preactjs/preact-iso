@@ -156,7 +156,7 @@ export function Router(props) {
 
 	let pathRoute, defaultRoute, matchProps;
 	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
-		const matches = exec(path, vnode.props.path, (matchProps = { ...vnode.props, path, pathParams, searchParams, rest: '' }));
+		const matches = exec(path, vnode.props.path, (matchProps = { ...vnode.props, path, pathParams, searchParams }));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
 	});
