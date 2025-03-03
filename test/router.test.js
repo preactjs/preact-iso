@@ -888,6 +888,45 @@ describe('Router', () => {
 		pushState.restore();
 		replaceState.restore();
 	});
+
+	it('should support using `Router` as an implicit suspense boundary', async () => {
+		let data;
+		function useSuspense() {
+			const [_, update] = useState();
+
+			if (!data) {
+				data = new Promise(r => setTimeout(r, 5, 'data'));
+				data.then(
+					(res) => update((data.res = res)),
+					(err) => update((data.err = err))
+				);
+			}
+
+			if (data.res) return data.res;
+			if (data.err) throw data.err;
+			throw data;
+		}
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Route
+						path="/"
+						component={() => {
+							const result = useSuspense();
+							return <h1>{result}</h1>;
+						}}
+					/>
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		expect(scratch).to.have.property('textContent', '');
+		await sleep(10);
+		expect(scratch).to.have.property('textContent', 'data');
+	});
 });
 
 const MODE_HYDRATE = 1 << 5;
