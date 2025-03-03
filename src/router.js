@@ -165,7 +165,6 @@ export function Router(props) {
 				path,
 				pathParams : Object.assign({}, pathParams),
 				searchParams,
-				rest: ''
 			}));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
