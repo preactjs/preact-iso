@@ -11,27 +11,36 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
 let scope;
 
 /**
- * @param {string} href
+ * @param {URL} url
  * @returns {boolean}
  */
-function isInScope(href) {
+function isInScope(url) {
 	return !scope || (typeof scope == 'string'
-		? href.startsWith(scope)
-		: scope.test(href)
+		? url.pathname.startsWith(scope)
+		: scope.test(url.pathname)
 	);
 }
-
 
 /**
  * @param {string} state
  * @param {NavigateEvent} e
  */
 function handleNav(state, e) {
-	if (!e.canIntercept) return state;
-	if (e.hashChange || e.downloadRequest !== null) return state;
-
+	// TODO: Double-check this can't fail to parse.
+	// `.destination` is read-only, so I'm hoping it guarantees a valid URL.
 	const url = new URL(e.destination.url);
-	if (!isInScope(url.href)) {
+
+	if (
+		!e.canIntercept ||
+		e.hashChange ||
+		e.downloadRequest !== null ||
+		// Not yet implemented by Chrome, but coming?
+		//!/^(_?self)?$/i.test(/** @type {HTMLAnchorElement} */ (e.sourceElement).target) ||
+		!isInScope(url)
+	) {
+		// We only set this for our tests, it's otherwise very difficult to
+		// determine if a navigation was intercepted or not externally.
+		e['preact-iso-ignored'] = true;
 		return state;
 	}
 
