@@ -867,6 +867,34 @@ describe('Router', () => {
 		const secondLast = new URL(entries[entries.length - 2].url);
 		expect(secondLast.pathname).to.equal('/');
 	});
+
+	it('should support navigating backwards and forwards', async () => {
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/" component={() => null} />
+					<Route path="/foo" component={() => null} />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		navigation.navigate('/foo');
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
+
+		navigation.back();
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/', path: '/', searchParams: {} });
+
+		navigation.forward();
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
+	});
 });
 
 const MODE_HYDRATE = 1 << 5;
