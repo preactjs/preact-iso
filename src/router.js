@@ -7,46 +7,46 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
-let push, scope;
-const UPDATE = (state, url) => {
-	push = undefined;
-	if (url && url.type === 'click') {
-		// ignore events the browser takes care of already:
-		if (url.ctrlKey || url.metaKey || url.altKey || url.shiftKey || url.button !== 0) {
-			return state;
-		}
+/** @type {string | RegExp | undefined} */
+let scope;
 
-		const link = url.target.closest('a[href]'),
-			href = link && link.getAttribute('href');
-		if (
-			!link ||
-			link.origin != location.origin ||
-			/^#/.test(href) ||
-			!/^(_?self)?$/i.test(link.target) ||
-			scope && (typeof scope == 'string'
-				? !href.startsWith(scope)
-				: !scope.test(href)
-			)
-		) {
-			return state;
-		}
+/**
+ * @param {URL} url
+ * @returns {boolean}
+ */
+function isInScope(url) {
+	return !scope || (typeof scope == 'string'
+		? url.pathname.startsWith(scope)
+		: scope.test(url.pathname)
+	);
+}
 
-		push = true;
-		url.preventDefault();
-		url = link.href.replace(location.origin, '');
-	} else if (typeof url === 'string') {
-		push = true;
-	} else if (url && url.url) {
-		push = !url.replace;
-		url = url.url;
-	} else {
-		url = location.pathname + location.search;
+/**
+ * @param {string} state
+ * @param {NavigateEvent} e
+ */
+function handleNav(state, e) {
+	// TODO: Double-check this can't fail to parse.
+	// `.destination` is read-only, so I'm hoping it guarantees a valid URL.
+	const url = new URL(e.destination.url);
+
+	if (
+		!e.canIntercept ||
+		e.hashChange ||
+		e.downloadRequest !== null ||
+		// Not yet implemented by Chrome, but coming?
+		//!/^(_?self)?$/i.test(/** @type {HTMLAnchorElement} */ (e.sourceElement).target) ||
+		!isInScope(url)
+	) {
+		// We only set this for our tests, it's otherwise very difficult to
+		// determine if a navigation was intercepted or not externally.
+		e['preact-iso-ignored'] = true;
+		return state;
 	}
 
-	if (push === true) history.pushState(null, '', url);
-	else if (push === false) history.replaceState(null, '', url);
-	return url;
-};
+	e.intercept();
+	return url.href.replace(url.origin, '');
+}
 
 export const exec = (url, route, matches = {}) => {
 	url = url.split('/').filter(Boolean);
@@ -80,9 +80,8 @@ export const exec = (url, route, matches = {}) => {
  * @type {import('./router.d.ts').LocationProvider}
  */
 export function LocationProvider(props) {
-	const [url, route] = useReducer(UPDATE, location.pathname + location.search);
+	const [url, route] = useReducer(handleNav, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
-	const wasPush = push === true;
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
@@ -93,18 +92,14 @@ export function LocationProvider(props) {
 			path,
 			pathParams: {},
 			searchParams: Object.fromEntries(u.searchParams),
-			route: (url, replace) => route({ url, replace }),
-			wasPush
 		};
 	}, [url]);
 
 	useLayoutEffect(() => {
-		addEventListener('click', route);
-		addEventListener('popstate', route);
+		navigation.addEventListener('navigate', route);
 
 		return () => {
-			removeEventListener('click', route);
-			removeEventListener('popstate', route);
+			navigation.removeEventListener('navigate', route);
 		};
 	}, []);
 
@@ -116,7 +111,7 @@ const RESOLVED = Promise.resolve();
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
-	const { url, path, pathParams, searchParams, wasPush } = useLocation();
+	const { url, path, pathParams, searchParams } = useLocation();
 
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
@@ -236,7 +231,7 @@ export function Router(props) {
 
 		// The route is loaded and rendered.
 		if (prevRoute.current !== path) {
-			if (wasPush) scrollTo(0, 0);
+			scrollTo(0, 0);
 			if (props.onRouteChange) props.onRouteChange(url);
 
 			prevRoute.current = path;
@@ -244,7 +239,7 @@ export function Router(props) {
 
 		if (props.onLoadEnd && isLoading.current) props.onLoadEnd(url);
 		isLoading.current = false;
-	}, [path, wasPush, c]);
+	}, [path, c]);
 
 	// Note: cur MUST render first in order to set didSuspend & prev.
 	return routeChanged
@@ -261,7 +256,7 @@ const RenderRef = ({ r }) => r.current;
 Router.Provider = LocationProvider;
 
 LocationProvider.ctx = createContext(
-	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
+	/** @type {import('./router.d.ts').LocationHook}} */ ({})
 );
 
 export const Route = props => h(props.component, props);
