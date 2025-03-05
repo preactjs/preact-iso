@@ -1,5 +1,5 @@
 import { h, Fragment, render, Component, hydrate, options } from 'preact';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -549,14 +549,13 @@ describe('Router', () => {
 		expect(loadEnd).not.to.have.been.called;
 	});
 
-	describe.only('intercepted VS external links', () => {
+	// TODO: Relies on upcoming property being added to navigation events
+	describe.skip('intercepted VS external links', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
 
-		const clickHandler = sinon.fake(e => e.preventDefault());
-
-		const Route = sinon.fake(
-			() => <div>
+		const Route = () => (
+			<div>
 				{[...shouldIntercept, ...shouldNavigate].map((target, i) => {
 					const url = '/' + i + '/' + target;
 					if (target === null) return <a href={url}>target = {target + ''}</a>;
@@ -565,31 +564,32 @@ describe('Router', () => {
 			</div>
 		);
 
-		let pushState;
-
-		before(() => {
-			pushState = sinon.spy(history, 'pushState');
-			addEventListener('click', clickHandler);
-		});
-
-		after(() => {
-			pushState.restore();
-			removeEventListener('click', clickHandler);
-		});
+		let triedToNavigate = false;
+		const handler = (e) => {
+			e.intercept();
+			if (e['preact-iso-ignored']) {
+				triedToNavigate = true;
+			}
+		}
 
 		beforeEach(async () => {
-			render(
-				<LocationProvider>
-					<Router>
-						<Route default />
-					</Router>
-					<ShallowLocation />
-				</LocationProvider>,
-				scratch
-			);
-			Route.resetHistory();
-			clickHandler.resetHistory();
-			pushState.resetHistory();
+			const App = () => {
+				useEffect(() => {
+					navigation.addEventListener('navigate', handler);
+					return () => navigation.removeEventListener('navigate', handler);
+				}, []);
+
+				return (
+					<LocationProvider>
+						<Router>
+							<Route default />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				);
+			}
+			render(<App />, scratch);
+			await sleep(10);
 		});
 
 		const getName = target => (target == null ? 'no target attribute' : `target="${target}"`);
@@ -604,9 +604,9 @@ describe('Router', () => {
 				el.click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
-				expect(Route).to.have.been.calledOnce;
-				expect(pushState).to.have.been.calledWith(null, '', url);
-				expect(clickHandler).to.have.been.called;
+				expect(triedToNavigate).to.be.false;
+
+				triedToNavigate = false;
 			});
 		}
 
@@ -618,9 +618,9 @@ describe('Router', () => {
 				if (!el) throw Error(`Unable to find link: ${sel}`);
 				el.click();
 				await sleep(1);
-				expect(Route).not.to.have.been.called;
-				expect(pushState).not.to.have.been.called;
-				expect(clickHandler).to.have.been.called;
+				expect(triedToNavigate).to.be.true;
+
+				triedToNavigate = false;
 			});
 		}
 	});
@@ -638,69 +638,81 @@ describe('Router', () => {
 			</>
 		);
 
-		it('should intercept clicks on links matching the `scope` props (string)', async () => {
-			render(
-				<LocationProvider scope="/app">
-					<Links />
-					<ShallowLocation />
-				</LocationProvider>,
-				scratch
-			);
+		let triedToNavigate = false;
+		const handler = (e) => {
+			e.intercept();
+			if (e['preact-iso-ignored']) {
+				triedToNavigate = true;
+			}
+		}
+
+		it('should support the `scope` prop (string)', async () => {
+			const App = () => {
+				useEffect(() => {
+					navigation.addEventListener('navigate', handler);
+					return () => navigation.removeEventListener('navigate', handler);
+				}, []);
+
+				return (
+					<LocationProvider scope="/app">
+						<Links />
+						<ShallowLocation />
+					</LocationProvider>
+				);
+			}
+			render(<App />, scratch);
+			await sleep(10);
 
 			for (const url of shouldIntercept) {
 				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
-			}
-		});
+				expect(triedToNavigate).to.be.false;
 
-		it.skip('should allow default browser navigation for links not matching the `scope` props (string)', async () => {
-			render(
-				<LocationProvider scope="app">
-					<Links />
-					<ShallowLocation />
-				</LocationProvider>,
-				scratch
-			);
+				triedToNavigate = false;
+			}
 
 			for (const url of shouldNavigate) {
 				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
+				expect(triedToNavigate).to.be.true;
 
-				// TODO: How to test this?
+				triedToNavigate = false;
 			}
 		});
 
-		it('should intercept clicks on links matching the `scope` props (regex)', async () => {
-			render(
-				<LocationProvider scope={/^\/app/}>
-					<Links />
-					<ShallowLocation />
-				</LocationProvider>,
-				scratch
-			);
+		it('should support the `scope` prop (regex)', async () => {
+			const App = () => {
+				useEffect(() => {
+					navigation.addEventListener('navigate', handler);
+					return () => navigation.removeEventListener('navigate', handler);
+				}, []);
+
+				return (
+					<LocationProvider scope={/^\/app/}>
+						<Links />
+						<ShallowLocation />
+					</LocationProvider>
+				);
+			}
+			render(<App />, scratch);
+			await sleep(10);
 
 			for (const url of shouldIntercept) {
 				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
-			}
-		});
+				expect(triedToNavigate).to.be.false;
 
-		it.skip('should allow default browser navigation for links not matching the `scope` props (regex)', async () => {
-			render(
-				<LocationProvider scope={/^\/app/}>
-					<Links />
-					<ShallowLocation />
-				</LocationProvider>,
-				scratch
-			);
+				triedToNavigate = false;
+			}
 
 			for (const url of shouldNavigate) {
 				scratch.querySelector(`a[href="${url}"]`).click();
 				await sleep(1);
+				expect(triedToNavigate).to.be.true;
 
-				// TODO: How to test this?
+				triedToNavigate = false;
 			}
 		});
 	});
