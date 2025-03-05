@@ -946,6 +946,34 @@ describe('Router', () => {
 		expect(scratch).to.have.property('textContent', 'data');
 	});
 
+	it('should support navigating backwards and forwards', async () => {
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/" component={() => null} />
+					<Route path="/foo" component={() => null} />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		navigation.navigate('/foo');
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
+
+		navigation.back();
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/', path: '/', searchParams: {} });
+
+		navigation.forward();
+		await sleep(10);
+
+		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
+	});
+
 	it('should intercept clicks on links inside open shadow DOM', async () => {
 		const shadowlink = document.createElement('a');
 		shadowlink.href = '/shadow';
