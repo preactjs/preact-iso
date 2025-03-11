@@ -16,7 +16,8 @@ const UPDATE = (state, url) => {
 			return state;
 		}
 
-		const link = url.target.closest('a[href]'),
+		const elements = url.composedPath();
+		const link = elements.find(el => el.tagName?.toLowerCase() === 'a' && el.href),
 			href = link && link.getAttribute('href');
 		if (
 			!link ||
