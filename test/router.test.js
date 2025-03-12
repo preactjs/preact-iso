@@ -927,6 +927,41 @@ describe('Router', () => {
 		await sleep(10);
 		expect(scratch).to.have.property('textContent', 'data');
 	});
+
+	it('should intercept clicks on links inside open shadow DOM', async () => {
+		const shadowlink = document.createElement('a');
+		shadowlink.href = '/shadow';
+		shadowlink.textContent = 'Shadow Link';
+		shadowlink.addEventListener('click', e => e.preventDefault());
+
+		const attachShadow = (el) => {
+			if (!el || el.shadowRoot) return;
+			const shadowroot = el.attachShadow({ mode: 'open' });
+			shadowroot.appendChild(shadowlink);
+		}
+
+		const Home = sinon.fake(() => <div ref={attachShadow}></div>);
+		const Shadow = sinon.fake(() => <div>Shadow Route</div>);
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/" component={Home} />
+					<Route path="/shadow" component={Shadow}/>
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		shadowlink.click();
+		
+		await sleep(1);
+
+		expect(loc).to.deep.include({ url: '/shadow' });
+		expect(Shadow).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'Shadow Route');
+	});
 });
 
 const MODE_HYDRATE = 1 << 5;
