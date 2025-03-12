@@ -16,7 +16,7 @@ const UPDATE = (state, url) => {
 			return state;
 		}
 
-		const link = url.target.closest('a[href]'),
+		const link = url.composedPath().find(el => el.nodeName == 'A' && el.href),
 			href = link && link.getAttribute('href');
 		if (
 			!link ||
