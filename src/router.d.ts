@@ -9,7 +9,7 @@ type NestedArray<T> = Array<T | NestedArray<T>>;
 
 /**
  * Check if a URL path matches against a URL path pattern.
- * 
+ *
  * Warning: This is an internal API exported only for testing purpose. API could change in future.
  * @param url - URL path (e.g. /user/12345)
  * @param route - URL pattern (e.g. /user/:id)
@@ -38,17 +38,11 @@ export function Router(props: {
 interface LocationHook {
 	url: string;
 	path: string;
-	query: Record<string, string>;
+	pathParams: Record<string, string>;
+	searchParams: Record<string, string>;
 	route: (url: string, replace?: boolean) => void;
 }
 export const useLocation: () => LocationHook;
-
-interface RouteHook {
-	path: string;
-	query: Record<string, string>;
-	params: Record<string, string>;
-}
-export const useRoute: () => RouteHook;
 
 type RoutableProps =
 	| { path: string; default?: false; }
