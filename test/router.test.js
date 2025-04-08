@@ -855,8 +855,8 @@ describe('Router', () => {
 		const Inner = () => (
 			<Router>
 				<Route
-					path="/bob"
-					component={() => null}
+					path="/baz"
+					component={() => <h1>Baz</h1>}
 				/>
 			</Router>
 		);
@@ -866,15 +866,16 @@ describe('Router', () => {
 				<Router>
 					<Route path="/foo/:id/*" component={Inner} />
 				</Router>
-				<a href="/foo/bar/bob"></a>
+				<a href="/foo/bar/baz"></a>
 				<ShallowLocation />
 			</LocationProvider>,
 			scratch
 		);
 
-		scratch.querySelector('a[href="/foo/bar/bob"]').click();
+		scratch.querySelector('a[href="/foo/bar/baz"]').click();
 		await sleep(1);
-		expect(loc).to.deep.include({ path: '/foo/bar/bob', pathParams: { id: 'bar' }, searchParams: {} });
+		expect(loc).to.deep.include({ path: '/foo/bar/baz', pathParams: { id: 'bar' }, searchParams: {} });
+		expect(scratch).to.have.property('textContent', 'Baz');
 	});
 
 	it('should append params in nested routes', async () => {

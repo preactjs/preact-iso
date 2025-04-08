@@ -1,4 +1,4 @@
-import { h, Fragment, createContext, cloneElement, toChildArray } from 'preact';
+import { h, createContext, cloneElement, toChildArray } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
@@ -137,6 +137,7 @@ export function Router(props) {
 	if (!url) {
 		throw new Error(`preact-iso's <Router> must be used within a <LocationProvider>, see: https://github.com/preactjs/preact-iso#locationprovider`);
 	}
+	const { rest = path } = useContext(RouterContext);
 
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
@@ -156,7 +157,7 @@ export function Router(props) {
 
 	let pathRoute, defaultRoute, matchProps;
 	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
-		const matches = exec(path, vnode.props.path, (matchProps = { ...vnode.props, path, pathParams, searchParams }));
+		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, pathParams, searchParams }));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
 	});
@@ -169,7 +170,7 @@ export function Router(props) {
 	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
 
-		cur.current = /** @type {VNode<any>} */ (h(Fragment, { key: path }, incoming));
+		cur.current = /** @type {VNode<any>} */ (h(RouterContext.Provider, { value: matchProps }, incoming));
 
 		// Only mark as an update if the route component changed.
 		const outgoing = prev.current && prev.current.props.children;
@@ -282,6 +283,9 @@ Router.Provider = LocationProvider;
 
 LocationProvider.ctx = createContext(
 	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
+);
+const RouterContext = createContext(
+	/** @type {{ rest: string }} */ ({})
 );
 
 export const Route = props => h(props.component, props);
