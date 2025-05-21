@@ -42,6 +42,22 @@ describe('Router', () => {
 	});
 
 
+	it('should throw a clear error if the LocationProvider is missing', () => {
+		const Home = () => <h1>Home</h1>;
+
+		try {
+			render(
+				<Router>
+					<Home path="/" test="2" />
+				</Router>,
+				scratch
+			);
+			expect.fail('should have thrown');
+		} catch (e) {
+			expect(e.message).to.include('must be used within a <LocationProvider>');
+		}
+	});
+
 	it('should strip trailing slashes from path', async () => {
 		render(
 			<LocationProvider url="/a/">
@@ -953,7 +969,7 @@ describe('Router', () => {
 		);
 
 		shadowlink.click();
-		
+
 		await sleep(1);
 
 		expect(loc).to.deep.include({ url: '/shadow' });
