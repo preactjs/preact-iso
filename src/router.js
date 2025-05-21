@@ -118,6 +118,9 @@ export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
 	const { url, query, wasPush, path } = useLocation();
+	if (!url) {
+		throw new Error(`preact-iso's <Router> must be used within a <LocationProvider>, see: https://github.com/preactjs/preact-iso#locationprovider`);
+	}
 	const { rest = path, params = {} } = useContext(RouteContext);
 
 	const isLoading = useRef(false);
