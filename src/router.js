@@ -7,7 +7,7 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
-let push, scope;
+let push, scope, composedPath;
 const UPDATE = (state, url) => {
 	push = undefined;
 	if (url && url.type === 'click') {
@@ -16,7 +16,8 @@ const UPDATE = (state, url) => {
 			return state;
 		}
 
-		const link = url.composedPath().find(el => el.nodeName == 'A' && el.href),
+		//const link = url.composedPath().find(el => el.nodeName == 'A' && el.href),
+		const link = composedPath.find(el => el.nodeName == 'A' && el.href),
 			href = link && link.getAttribute('href');
 		if (
 			!link ||
@@ -99,12 +100,18 @@ export function LocationProvider(props) {
 	}, [url]);
 
 	useLayoutEffect(() => {
-		addEventListener('click', route);
-		addEventListener('popstate', route);
+		// Need to hoist `.composedPath` access due to preact#4760
+		const handleRoute = (e) => {
+			composedPath = undefined;
+			if (e && e.type == 'click') composedPath = e.composedPath();
+			route(e);
+		}
+		addEventListener('click', handleRoute);
+		addEventListener('popstate', handleRoute);
 
 		return () => {
-			removeEventListener('click', route);
-			removeEventListener('popstate', route);
+			removeEventListener('click', handleRoute);
+			removeEventListener('popstate', handleRoute);
 		};
 	}, []);
 
