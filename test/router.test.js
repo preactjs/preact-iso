@@ -1,4 +1,4 @@
-import { h, Fragment, render, hydrate, options } from 'preact';
+import { h, Fragment, render, Component, hydrate, options } from 'preact';
 import { useState } from 'preact/hooks';
 import * as chai from 'chai';
 import * as sinon from 'sinon';
@@ -71,6 +71,25 @@ describe('Router', () => {
 			path: '/a',
 			query: {},
 		});
+	});
+
+	it('should support class components using LocationProvider.ctx', () => {
+		class Foo extends Component {
+			static contextType = LocationProvider.ctx;
+
+			render() {
+				return <h1>{this.context.url}</h1>;
+			}
+		}
+
+		render(
+			<LocationProvider>
+				<Foo />
+			</LocationProvider>,
+			scratch
+		);
+
+		expect(scratch).to.have.property('innerHTML', '<h1>/</h1>');
 	});
 
 	it('should allow passing props to a route', async () => {
