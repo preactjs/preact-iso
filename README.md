@@ -74,10 +74,14 @@ export async function prerender(data) {
 
 ## Nested Routing
 
-Nested routes are supported by using multiple `Router` components. Partially matched routes end with a wildcard (`/*`) and the remaining value will be passed to continue matching with if there are any further routes.
+Some applications would benefit from having routers of multiple levels, allowing to break down the routing logic into smaller components. This is especially useful for larger applications, and we solve this by allowing for multiple nested `<Router>` components.
+
+Partially matched routes end with a wildcard (`/*`) and only the remaining value will be passed to descendant routers for further matching. This allows you to create a parent route that matches a base path, and then have child routes that match specific sub-paths.
 
 ```js
 import { lazy, LocationProvider, ErrorBoundary, Router, Route } from 'preact-iso';
+
+import AllMovies from './routes/movies/all.js';
 
 const NotFound = lazy(() => import('./routes/_404.js'));
 
@@ -85,6 +89,7 @@ const App = () => (
 	<LocationProvider>
 		<ErrorBoundary>
 			<Router>
+				<Router path="/movies" component={AllMovies} />
 				<Route path="/movies/*" component={Movies} />
 				<NotFound default />
 			</Router>
@@ -107,10 +112,15 @@ const Movies = () => (
 );
 ```
 
-This will match the following routes:
+The `<Movies>` component will be used for the following routes:
   - `/movies/trending`
   - `/movies/search`
   - `/movies/Inception`
+  - `/movies/...`
+
+It will not be used for any of the following:
+  - `/movies`
+  - `/movies/`
 
 ---
 
