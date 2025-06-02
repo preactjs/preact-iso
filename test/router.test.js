@@ -78,7 +78,8 @@ describe('Router', () => {
 			static contextType = LocationProvider.ctx;
 
 			render() {
-				return <h1>{this.context.url}</h1>;
+				loc = this.context;
+				return <h1>{loc.url}</h1>;
 			}
 		}
 
@@ -90,6 +91,11 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>/</h1>');
+		expect(loc).to.deep.include({
+			url: '/',
+			path: '/',
+			query: {},
+		});
 	});
 
 	it('should allow passing props to a route', async () => {
