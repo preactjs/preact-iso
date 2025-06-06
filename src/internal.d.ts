@@ -1,3 +1,5 @@
+import { Component } from 'preact';
+
 export interface AugmentedComponent extends Component<any, any> {
 	__v: VNode;
 	__c: (error: Promise<void>, suspendingVNode: VNode) => void;
