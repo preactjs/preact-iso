@@ -1,4 +1,4 @@
-import { AnyComponent, ComponentChildren, Context, FunctionComponent, VNode } from 'preact';
+import { AnyComponent, ComponentChildren, Context, VNode } from 'preact';
 
 export const LocationProvider: {
 	(props: { scope?: string | RegExp; children?: ComponentChildren; }): VNode;
@@ -7,26 +7,29 @@ export const LocationProvider: {
 
 type NestedArray<T> = Array<T | NestedArray<T>>;
 
+interface KnownProps {
+	path: string;
+	query: Record<string, string>;
+	params: Record<string, string>;
+	default?: boolean;
+	rest?: string;
+	component?: AnyComponent;
+}
+
+interface ArbitraryProps {
+	[prop: string]: any;
+}
+
+type MatchProps = KnownProps & ArbitraryProps;
+
 /**
  * Check if a URL path matches against a URL path pattern.
  *
- * Warning: This is an internal API exported only for testing purpose. API could change in future.
+ * Warning: This is largely an internal API, it may change in the future
  * @param url - URL path (e.g. /user/12345)
  * @param route - URL pattern (e.g. /user/:id)
  */
-export function exec(url: string, route: string, matches?: {
-	params: {
-		[param: string]: string;
-	};
-	rest?: string;
-	[props: string]: string;
-}): {
-	params: {
-		[param: string]: string;
-	},
-	rest?: string;
-	[propsOrParam: string]: string;
-}
+export function exec(url: string, route: string, matches?: MatchProps): MatchProps
 
 export function Router(props: {
 	onRouteChange?: (url: string) => void;
