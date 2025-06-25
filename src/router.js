@@ -25,18 +25,18 @@ function isInScope(href) {
 
 /**
  * @param {string} state
- * @param {MouseEvent | PopStateEvent | string | { url: string, replace?: boolean }} e
+ * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
  */
-function handleNav(state, e) {
+function handleNav(state, action) {
 	let url = '';
 	push = undefined;
-	if (e && e.type === 'click') {
+	if (action && action.type === 'click') {
 		// ignore events the browser takes care of already:
-		if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.button !== 0) {
+		if (action.ctrlKey || action.metaKey || action.altKey || action.shiftKey || action.button !== 0) {
 			return state;
 		}
 
-		const link = e.composedPath().find(el => el.nodeName == 'A' && el.href),
+		const link = action.composedPath().find(el => el.nodeName == 'A' && el.href),
 			href = link && link.getAttribute('href');
 		if (
 			!link ||
@@ -49,13 +49,11 @@ function handleNav(state, e) {
 		}
 
 		push = true;
-		e.preventDefault();
+		action.preventDefault();
 		url = link.href.replace(location.origin, '');
-	} else if (typeof e === 'string') {
-		push = true;
-	} else if (e && 'url' in e) {
-		push = !e.replace;
-		url = e.url;
+	} else if (action && action.url) {
+		push = !action.replace;
+		url = action.url;
 	} else {
 		url = location.pathname + location.search;
 	}
