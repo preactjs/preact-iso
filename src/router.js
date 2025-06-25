@@ -7,38 +7,55 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
-let push, scope;
-const UPDATE = (state, url) => {
+/** @type {boolean} */
+let push;
+/** @type {string | RegExp | undefined} */
+let scope;
+
+/**
+ * @param {string} href
+ * @returns {boolean}
+ */
+function isInScope(href) {
+	return !scope || (typeof scope == 'string'
+		? href.startsWith(scope)
+		: scope.test(href)
+	);
+}
+
+/**
+ * @param {string} state
+ * @param {MouseEvent | PopStateEvent | string | { url: string, replace?: boolean }} e
+ */
+function handleNav(state, e) {
+	let url = '';
 	push = undefined;
-	if (url && url.type === 'click') {
+	if (e && e.type === 'click') {
 		// ignore events the browser takes care of already:
-		if (url.ctrlKey || url.metaKey || url.altKey || url.shiftKey || url.button !== 0) {
+		if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.button !== 0) {
 			return state;
 		}
 
-		const link = url.composedPath().find(el => el.nodeName == 'A' && el.href),
+		const link = e.composedPath().find(el => el.nodeName == 'A' && el.href),
 			href = link && link.getAttribute('href');
 		if (
 			!link ||
 			link.origin != location.origin ||
 			/^#/.test(href) ||
 			!/^(_?self)?$/i.test(link.target) ||
-			scope && (typeof scope == 'string'
-				? !href.startsWith(scope)
-				: !scope.test(href)
-			)
+			!isInScope(href)
 		) {
 			return state;
 		}
 
 		push = true;
-		url.preventDefault();
+		e.preventDefault();
 		url = link.href.replace(location.origin, '');
-	} else if (typeof url === 'string') {
+	} else if (typeof e === 'string') {
 		push = true;
-	} else if (url && url.url) {
-		push = !url.replace;
-		url = url.url;
+	} else if (e && 'url' in e) {
+		push = !e.replace;
+		url = e.url;
 	} else {
 		url = location.pathname + location.search;
 	}
@@ -77,11 +94,13 @@ export const exec = (url, route, matches = {}) => {
 };
 
 /**
- * @type {import('./router.d.ts').LocationProvider}
+ * @param {Object} props
+ * @param {string | RegExp} [props.scope]
+ * @param {import('preact').ComponentChildren} [props.children]
  */
 export function LocationProvider(props) {
 	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(UPDATE, props.url || location.pathname + location.search);
+	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
 
