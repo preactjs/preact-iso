@@ -158,9 +158,17 @@ export function Router(props) {
 
 	let pathRoute, defaultRoute, matchProps;
 	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
-		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
-		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
-		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
+		// Create a fresh matchProps object for each route to avoid reference issues
+		const routeProps = { ...vnode.props, path: rest, query, params, rest: '' };
+		const matches = exec(rest, vnode.props.path, routeProps);
+		if (matches) {
+			matchProps = routeProps;
+			return (pathRoute = cloneElement(vnode, matchProps));
+		}
+		if (vnode.props.default) {
+			matchProps = routeProps;
+			defaultRoute = cloneElement(vnode, matchProps);
+		}
 	});
 
 	/** @type {VNode<any> | undefined} */
@@ -209,6 +217,11 @@ export function Router(props) {
 
 		// Re-render on unsuspend:
 		let c = count.current;
+		// Extract hydration properties to avoid capturing suspendedVNode reference
+		// in the .then closure.
+		const hydrating = suspendedVNode.__h;
+		const flags = suspendedVNode.__u;
+
 		e.then(() => {
 			// Ignore this update if it isn't the most recently suspended update:
 			if (c !== count.current) return;
@@ -216,17 +229,17 @@ export function Router(props) {
 			// Successful route transition: un-suspend after a tick and stop rendering the old route:
 			prev.current = null;
 			if (cur.current) {
-				if (suspendedVNode.__h) {
+				if (hydrating) {
 					// _hydrating
-					cur.current.__h = suspendedVNode.__h;
+					cur.current.__h = hydrating;
 				}
 
-				if (suspendedVNode.__u & MODE_SUSPENDED) {
+				if (flags & MODE_SUSPENDED) {
 					// _flags
 					cur.current.__u |= MODE_SUSPENDED;
 				}
 
-				if (suspendedVNode.__u & MODE_HYDRATE) {
+				if (flags & MODE_HYDRATE) {
 					cur.current.__u |= MODE_HYDRATE;
 				}
 			}
@@ -266,6 +279,12 @@ export function Router(props) {
 
 		if (props.onLoadEnd && isLoading.current) props.onLoadEnd(url);
 		isLoading.current = false;
+
+		// Clean up previous route references to prevent memory leaks
+		// Only keep prev.current if we're currently suspended
+		if (!didSuspend.current && prev.current) {
+			prev.current = null;
+		}
 	}, [path, wasPush, c]);
 
 	// Note: cur MUST render first in order to set didSuspend & prev.
