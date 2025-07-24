@@ -91,15 +91,13 @@ export const exec = (url, route, matches = {}) => {
 	return matches;
 };
 
-/**
- * @param {Object} props
- * @param {string | RegExp} [props.scope]
- * @param {import('preact').ComponentChildren} [props.children]
- */
-export function LocationProvider(props) {
-	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
-	if (props.scope) scope = props.scope;
+function boundRoute(url, replace) {
+	// @ts-ignore-next
+	return this({ url, replace });
+}
+
+function useLocationManager(initialUrl) {
+	const [url, route] = useReducer(handleNav, initialUrl);
 	const wasPush = push === true;
 
 	const value = useMemo(() => {
@@ -110,7 +108,7 @@ export function LocationProvider(props) {
 			url,
 			path,
 			query: Object.fromEntries(u.searchParams),
-			route: (url, replace) => route({ url, replace }),
+			route: boundRoute.bind(route),
 			wasPush
 		};
 	}, [url]);
@@ -124,6 +122,19 @@ export function LocationProvider(props) {
 			removeEventListener('popstate', route);
 		};
 	}, []);
+
+	return value;
+}
+
+/**
+ * @param {Object} props
+ * @param {string | RegExp} [props.scope]
+ * @param {import('preact').ComponentChildren} [props.children]
+ */
+export function LocationProvider(props) {
+	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
+	const value = useLocationManager(props.url || location.pathname + location.search);
+	if (props.scope) scope = props.scope;
 
 	// @ts-ignore
 	return h(LocationProvider.ctx.Provider, { value }, props.children);
