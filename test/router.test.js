@@ -978,7 +978,6 @@ describe('Router', () => {
 		const shadowlink = document.createElement('a');
 		shadowlink.href = '/shadow';
 		shadowlink.textContent = 'Shadow Link';
-		shadowlink.addEventListener('click', e => e.preventDefault());
 
 		const attachShadow = (el) => {
 			if (!el || el.shadowRoot) return;
