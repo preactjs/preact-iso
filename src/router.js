@@ -7,6 +7,18 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
  * @typedef {import('./internal.d.ts').VNode} VNode
  */
 
+/**
+ * @param {NavigateEvent} e
+ */
+function isSameWindow(e) {
+	const sourceElement = /** @type {HTMLAnchorElement | null} */ (e.sourceElement);
+	return (
+		!sourceElement ||
+		!sourceElement.target ||
+		/^(_self)?$/i.test(sourceElement.target)
+	);
+}
+
 /** @type {string | RegExp | undefined} */
 let scope;
 
@@ -34,12 +46,11 @@ function handleNav(state, e) {
 		!e.canIntercept ||
 		e.hashChange ||
 		e.downloadRequest !== null ||
-		// Not yet implemented by Chrome, but coming?
-		//!/^(_?self)?$/i.test(/** @type {HTMLAnchorElement} */ (e.sourceElement).target) ||
+		!isSameWindow(e) ||
 		!isInScope(url)
 	) {
-		// We only set this for our tests, it's otherwise very difficult to
-		// determine if a navigation was intercepted or not externally.
+		// This is set purely for our test suite so that we can check
+		// if the event was ignored in another `navigate` handler.
 		e['preact-iso-ignored'] = true;
 		return state;
 	}
