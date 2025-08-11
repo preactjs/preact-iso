@@ -549,20 +549,25 @@ describe('Router', () => {
 		expect(loadEnd).not.to.have.been.called;
 	});
 
-	// TODO: Relies on upcoming property being added to navigation events
-	describe.skip('intercepted VS external links', () => {
-		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
-		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
+	describe('intercepted VS external links', () => {
+		const shouldIntercept = [null, '', '_self', '_SELF'];
+		const shouldNavigate = ['_top', '_parent', '_blank', '_BLANK', 'custom'];
 
-		const Route = () => (
-			<div>
-				{[...shouldIntercept, ...shouldNavigate].map((target, i) => {
-					const url = '/' + i + '/' + target;
-					if (target === null) return <a href={url}>target = {target + ''}</a>;
-					return <a href={url} target={target}>target = {target}</a>;
-				})}
-			</div>
-		);
+		// Create an ID as Chrome & Safari don't support the
+		// case-sensitivity flag for attribute selectors, meaning
+		// we can't distinguish between `_self` and `_SELF`.
+		const createId = (target) => {
+			if (target === null) return 'null';
+			if (target === '') return 'emptyString';
+			return target;
+		}
+
+		const Links = () => <div>
+			{[...shouldIntercept, ...shouldNavigate].map((target, i) => {
+				const url = '/' + i + '/' + target;
+				return <a href={url} target={target} id={createId(target)}>target = {target}</a>;
+			})}
+		</div>;
 
 		let triedToNavigate = false;
 		const handler = (e) => {
@@ -572,34 +577,30 @@ describe('Router', () => {
 			}
 		}
 
-		beforeEach(async () => {
-			const App = () => {
-				useEffect(() => {
-					navigation.addEventListener('navigate', handler);
-					return () => navigation.removeEventListener('navigate', handler);
-				}, []);
+		const App = () => {
+			useEffect(() => {
+				navigation.addEventListener('navigate', handler);
+				return () => navigation.removeEventListener('navigate', handler);
+			}, []);
 
-				return (
-					<LocationProvider>
-						<Router>
-							<Route default />
-						</Router>
-						<ShallowLocation />
-					</LocationProvider>
-				);
-			}
+			return (
+				<LocationProvider>
+					<Links />
+					<ShallowLocation />
+				</LocationProvider>
+			);
+		}
+
+		beforeEach(async () => {
 			render(<App />, scratch);
 			await sleep(10);
 		});
 
 		const getName = target => (target == null ? 'no target attribute' : `target="${target}"`);
 
-		// these should all be intercepted by the router.
 		for (const target of shouldIntercept) {
 			it(`should intercept clicks on links with ${getName(target)}`, async () => {
-				const sel = target == null ? `a:not([target])` : `a[target="${target}"]`;
-				const el = scratch.querySelector(sel);
-				if (!el) throw Error(`Unable to find link: ${sel}`);
+				const el = scratch.querySelector(`#${createId(target)}`);
 				const url = el.getAttribute('href');
 				el.click();
 				await sleep(1);
@@ -610,13 +611,17 @@ describe('Router', () => {
 			});
 		}
 
-		// these should all navigate.
+		// TODO: These tests are rather flakey, for some reason the additional handler
+		// occasionally isn't running prior browser actually navigates away.
 		for (const target of shouldNavigate) {
 			it(`should allow default browser navigation for links with ${getName(target)}`, async () => {
-				const sel = target == null ? `a:not([target])` : `a[target="${target}"]`;
-				const el = scratch.querySelector(sel);
-				if (!el) throw Error(`Unable to find link: ${sel}`);
-				el.click();
+				// Currently cross-window navigations, (e.g., `target="_blank"`), do not trigger a
+				// `navigate` event, which makes this difficult to observe. Per the spec, however, this
+				// might be a bug in Chrome's implementation:
+				// https://github.com/WICG/navigation-api?tab=readme-ov-file#restrictions-on-firing-canceling-and-responding
+				if (target === '_blank' || target === '_BLANK' || target === 'custom') return;
+
+				scratch.querySelector(`#${createId(target)}`).click();
 				await sleep(1);
 				expect(triedToNavigate).to.be.true;
 
