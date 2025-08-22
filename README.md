@@ -398,6 +398,18 @@ const App = () => (
 const { html, links } = await prerender(<App />);
 ```
 
+### `locationStub`
+
+A utility function to imitate the `location` object in a non-browser environment. Our router relies upon this to function, so if you are using `preact-iso` outside of a browser context and are not prerendering via `@preact/preset-vite` (which does this for you), you can use this utility to set a stubbed `location` object.
+
+```js
+import { locationStub } from 'preact-iso/prerender';
+
+locationStub('/foo/bar?baz=qux#quux');
+
+console.log(location.pathname); // "/foo/bar"
+```
+
 ## License
 
 [MIT](./LICENSE)
