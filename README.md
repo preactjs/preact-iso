@@ -8,6 +8,26 @@ Isomorphic async tools for Preact.
   - Generate static HTML for your app using `prerender()`, waiting for `lazy()` components and data dependencies.
   - Implement async-aware client and server-side routing using `<Router>`, including seamless async transitions.
 
+---
+
+  - [Routing](#routing)
+  - [Prerendering](#prerendering)
+  - [Nested Routing](#nested-routing)
+  - [API Docs](#api-docs)
+    - [\<LocationProvider\>](#locationprovider)
+    - [\<Router\>](#router)
+    - [\<Route\>](#route)
+      - [Path Segment Matching](#path-segment-matching)
+    - [useLocation()](#uselocation)
+    - [useRoute()](#useroute)
+    - [lazy()](#lazy)
+    - [\<ErrorBoundary\>](#errorboundary)
+    - [hydrate()](#hydrate)
+    - [prerender()](#prerender)
+    - [locationStub()](#locationstub)
+
+---
+
 ## Routing
 
 `preact-iso` offers a simple router for Preact with conventional and hooks-based APIs. The `<Router>` component is async-aware: when transitioning from one route to another, if the incoming route suspends (throws a Promise), the outgoing route is preserved until the new one becomes ready.
