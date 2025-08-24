@@ -4,12 +4,12 @@ import * as assert from 'uvu/assert';
 import { exec } from '../../src/router.js';
 
 function execPath(path, pattern, opts) {
-	return exec(path, pattern, { path, query: {}, params: {}, ...(opts || {}) });
+	return exec(path, pattern, { path, searchParams: {}, pathParams: {}, ...(opts || {}) });
 }
 
 test('Base route', () => {
 	const accurateResult = execPath('/', '/');
-	assert.equal(accurateResult, { path: '/', params: {}, query: {} });
+	assert.equal(accurateResult, { path: '/', pathParams: {}, searchParams: {} });
 
 	const inaccurateResult = execPath('/user/1', '/');
 	assert.equal(inaccurateResult, undefined);
@@ -17,7 +17,7 @@ test('Base route', () => {
 
 test('Param route', () => {
 	const accurateResult = execPath('/user/2', '/user/:id');
-	assert.equal(accurateResult, { path: '/user/2', params: { id: '2' }, id: '2', query: {} });
+	assert.equal(accurateResult, { path: '/user/2', pathParams: { id: '2' }, id: '2', searchParams: {} });
 
 	const inaccurateResult = execPath('/', '/user/:id');
 	assert.equal(inaccurateResult, undefined);
@@ -25,10 +25,10 @@ test('Param route', () => {
 
 test('Param rest segment', () => {
 	const accurateResult = execPath('/user/foo', '/user/*');
-	assert.equal(accurateResult, { path: '/user/foo', params: {}, query: {}, rest: '/foo' });
+	assert.equal(accurateResult, { path: '/user/foo', pathParams: {}, searchParams: {}, rest: '/foo' });
 
 	const accurateResult2 = execPath('/user/foo/bar/baz', '/user/*');
-	assert.equal(accurateResult2, { path: '/user/foo/bar/baz', params: {}, query: {}, rest: '/foo/bar/baz' });
+	assert.equal(accurateResult2, { path: '/user/foo/bar/baz', pathParams: {}, searchParams: {}, rest: '/foo/bar/baz' });
 
 	const inaccurateResult = execPath('/user', '/user/*');
 	assert.equal(inaccurateResult, undefined);
@@ -36,14 +36,14 @@ test('Param rest segment', () => {
 
 test('Param route with rest segment', () => {
 	const accurateResult = execPath('/user/2/foo', '/user/:id/*');
-	assert.equal(accurateResult, { path: '/user/2/foo', params: { id: '2' }, id: '2', query: {}, rest: '/foo' });
+	assert.equal(accurateResult, { path: '/user/2/foo', pathParams: { id: '2' }, id: '2', searchParams: {}, rest: '/foo' });
 
 	const accurateResult2 = execPath('/user/2/foo/bar/bob', '/user/:id/*');
 	assert.equal(accurateResult2, {
 		path: '/user/2/foo/bar/bob',
-		params: { id: '2' },
+		pathParams: { id: '2' },
 		id: '2',
-		query: {},
+		searchParams: {},
 		rest: '/foo/bar/bob'
 	});
 
@@ -53,7 +53,7 @@ test('Param route with rest segment', () => {
 
 test('Optional param route', () => {
 	const accurateResult = execPath('/user', '/user/:id?');
-	assert.equal(accurateResult, { path: '/user', params: { id: undefined }, id: undefined, query: {} });
+	assert.equal(accurateResult, { path: '/user', pathParams: { id: undefined }, id: undefined, searchParams: {} });
 
 	const inaccurateResult = execPath('/', '/user/:id?');
 	assert.equal(inaccurateResult, undefined);
@@ -61,22 +61,22 @@ test('Optional param route', () => {
 
 test('Optional rest param route "/:x*"', () => {
 	const matchedResult = execPath('/user', '/user/:id*');
-	assert.equal(matchedResult, { path: '/user', params: { id: undefined }, id: undefined, query: {} });
+	assert.equal(matchedResult, { path: '/user', pathParams: { id: undefined }, id: undefined, searchParams: {} });
 
 	const matchedResultWithSlash = execPath('/user/foo/bar', '/user/:id*');
 	assert.equal(matchedResultWithSlash, {
 		path: '/user/foo/bar',
-		params: { id: 'foo/bar' },
+		pathParams: { id: 'foo/bar' },
 		id: 'foo/bar',
-		query: {}
+		searchParams: {}
 	});
 
 	const emptyResult = execPath('/user', '/user/:id*');
 	assert.equal(emptyResult, {
 		path: '/user',
-		params: { id: undefined },
+		pathParams: { id: undefined },
 		id: undefined,
-		query: {}
+		searchParams: {}
 	});
 
 	const inaccurateResult = execPath('/', '/user/:id*');
@@ -85,14 +85,14 @@ test('Optional rest param route "/:x*"', () => {
 
 test('Rest param route "/:x+"', () => {
 	const matchedResult = execPath('/user/foo', '/user/:id+');
-	assert.equal(matchedResult, { path: '/user/foo', params: { id: 'foo' }, id: 'foo', query: {} });
+	assert.equal(matchedResult, { path: '/user/foo', pathParams: { id: 'foo' }, id: 'foo', searchParams: {} });
 
 	const matchedResultWithSlash = execPath('/user/foo/bar', '/user/:id+');
 	assert.equal(matchedResultWithSlash, {
 		path: '/user/foo/bar',
-		params: { id: 'foo/bar' },
+		pathParams: { id: 'foo/bar' },
 		id: 'foo/bar',
-		query: {}
+		searchParams: {}
 	});
 
 	const emptyResult = execPath('/user', '/user/:id+');
@@ -106,22 +106,22 @@ test('Handles leading/trailing slashes', () => {
 	const result = execPath('/about-late/_SEGMENT1_/_SEGMENT2_/', '/about-late/:seg1/:seg2/');
 	assert.equal(result, {
 		path: '/about-late/_SEGMENT1_/_SEGMENT2_/',
-		params: {
+		pathParams: {
 			seg1: '_SEGMENT1_',
 			seg2: '_SEGMENT2_'
 		},
 		seg1: '_SEGMENT1_',
 		seg2: '_SEGMENT2_',
-		query: {}
+		searchParams: {}
 	});
 });
 
 test('should not overwrite existing properties', () => {
-	const result = execPath('/foo/bar', '/:path/:query', { path: '/custom-path' });
+	const result = execPath('/foo/bar', '/:path/:searchParams', { path: '/custom-path' });
 	assert.equal(result, {
-		params: { path: 'foo', query: 'bar' },
+		pathParams: { path: 'foo', searchParams: 'bar' },
 		path: '/custom-path',
-		query: {}
+		searchParams: {},
 	});
 });
 

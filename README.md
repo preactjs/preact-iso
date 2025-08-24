@@ -70,6 +70,7 @@ const App = () => (
 Primarily meant for use with prerendering via [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration) or other prerendering systems that share the API. If you're server-side rendering your app via any other method, you can use `preact-render-to-string` (specifically `renderToStringAsync()`) directly.
 
 ```js
+import { render, hydrate } from 'preact';
 import { LocationProvider, ErrorBoundary, Router, lazy, prerender as ssr } from 'preact-iso';
 
 // Asynchronous (throws a promise)
@@ -85,7 +86,10 @@ const App = () => (
 	</LocationProvider>
 );
 
-hydrate(<App />);
+if (typeof window !== 'undefined') {
+	const target = document.getElementById('app');
+	import.meta.env.DEV ? render(<App />, target) : hydrate(<App />, target);
+}
 
 export async function prerender(data) {
 	return await ssr(<App />);
@@ -237,7 +241,7 @@ Specific to the `Route` component:
 
 Paths are matched using a simple string matching algorithm. The following features may be used:
 
-  - `:param` - Matches any URL segment, binding the value to the label (can later extract this value from `useRoute()`)
+  - `:param` - Matches any URL segment, binding the value to the label (can extract this value as `pathParams` from `useLocation()`)
     - `/profile/:id` will match `/profile/123` and `/profile/abc`
     - `/profile/:id?` will match `/profile` and `/profile/123`
     - `/profile/:id*` will match `/profile`, `/profile/123`, and `/profile/123/abc`
@@ -264,18 +268,9 @@ Returns an object with the following properties:
 
   - `url: string` - The current path & search params
   - `path: string` - The current path
-  - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
+  - `pathParams: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
+  - `searchParams: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
   - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
-
-### `useRoute`
-
-A hook to access current route information. Unlike `useLocation`, this hook only works within `<Router>` components.
-
-Returns an object with the following properties:
-
-  - `path: string` - The current path
-  - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
-  - `params: Record<string, string>` - The current route parameters (`/profile/:id` -> `{ id: '123' }`)
 
 ### `lazy`
 
@@ -341,31 +336,6 @@ const App = () => (
 	</LocationProvider>
 );
 ```
-
-### `hydrate`
-
-A thin wrapper around Preact's `hydrate` export, it switches between hydrating and rendering the provided element, depending on whether the current page has been prerendered. Additionally, it checks to ensure it's running in a browser context before attempting any rendering, making it a no-op during SSR.
-
-Pairs with the `prerender()` function.
-
-Params:
-
-  - `jsx: ComponentChild` - The JSX element or component to render
-  - `parent?: Element | Document | ShadowRoot | DocumentFragment` - The parent element to render into. Defaults to `document.body` if not provided.
-
-```js
-import { hydrate } from 'preact-iso';
-
-const App = () => (
-	<div class="app">
-		<h1>Hello World</h1>
-	</div>
-);
-
-hydrate(<App />);
-```
-
-However, it is just a simple utility method. By no means is it essential to use, you can always use Preact's `hydrate` export directly.
 
 ### `prerender`
 
