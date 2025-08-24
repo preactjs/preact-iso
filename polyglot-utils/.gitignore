@@ -1,0 +1,5 @@
+# Language-specific files to ignore
+__pycache__/
+*.pyc
+.venv/
+.ruby-version
