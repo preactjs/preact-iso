@@ -92,10 +92,6 @@ export async function prerender(data) {
 }
 ```
 
-## Non-JS Server
-
-prerendering is not an option for servers that cannot run JavaScript. But you can still opt to add preload head tags for JS and CSS for the pages while you serve the app shell in the `<body>` tag. Doing so would speed up your page load. However to achieve that, your server needs to be able to understand which preact-iso route would load for a given URL. [polyglot-utils](https://github.com/preactjs/preact-iso/tree/main/polyglot-utils/) provides utilities and guides on how to achieve that.
-
 ## Nested Routing
 
 Some applications would benefit from having routers of multiple levels, allowing to break down the routing logic into smaller components. This is especially useful for larger applications, and we solve this by allowing for multiple nested `<Router>` components.
@@ -145,6 +141,10 @@ The `<Movies>` component will be used for the following routes:
 It will not be used for any of the following:
   - `/movies`
   - `/movies/`
+
+## Non-JS Servers
+
+For those using non-JS servers (e.g., PHP, Python, Ruby, etc.) to serve your Preact app, you may want to use our ["polyglot-utils"](./polyglot-utils), a collection of our route matching logic ported to various other languages. Combined with a route manifest, this will allow your server to better understand which assets will be needed at runtime for a given URL, allowing you to say insert preload tags for those assets in the HTML head prior to serving the page.
 
 ---
 
