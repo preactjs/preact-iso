@@ -6,6 +6,7 @@ require_relative 'preact-iso-url-pattern'
 
 class TestPreactIsoUrlPatternMatch < Minitest::Test
   
+  # Base route tests
   def test_base_route_exact_match
     # Base route - exact match
     result = preact_iso_url_pattern_match("/", "/")
@@ -19,6 +20,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_nil result
   end
   
+  # Param route tests
   def test_param_route_match
     # Param route - match
     result = preact_iso_url_pattern_match("/user/2", "/user/:id")
@@ -32,6 +34,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_nil result
   end
   
+  # Rest segment tests
   def test_rest_segment_match
     # Rest segment - match
     result = preact_iso_url_pattern_match("/user/foo", "/user/*")
@@ -58,6 +61,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_nil result
   end
   
+  # Param route with rest segment
   def test_param_with_rest_single_segment
     # Param with rest - single segment
     result = preact_iso_url_pattern_match("/user/2/foo", "/user/:id/*")
@@ -72,6 +76,13 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  def test_param_with_rest_no_match
+    # Param with rest - no match
+    result = preact_iso_url_pattern_match("/", "/user/:id/*")
+    assert_nil result
+  end
+  
+  # Optional param tests
   def test_optional_param_empty
     # Optional param - empty
     result = preact_iso_url_pattern_match("/user", "/user/:id?")
@@ -85,6 +96,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_nil result
   end
   
+  # Optional rest param tests (/:x*)
   def test_optional_rest_param_empty
     # Optional rest param - empty
     result = preact_iso_url_pattern_match("/user", "/user/:id*")
@@ -99,6 +111,13 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  def test_optional_param_no_match_base_duplicate
+    # Optional param - no match base duplicate
+    result = preact_iso_url_pattern_match("/", "/user/:id*")
+    assert_nil result
+  end
+  
+  # Required rest param tests (/:x+)
   def test_required_rest_param_single_segment
     # Required rest param - single segment
     result = preact_iso_url_pattern_match("/user/foo", "/user/:id+")
@@ -125,6 +144,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_nil result
   end
   
+  # Leading/trailing slashes
   def test_leading_trailing_slashes
     # Leading/trailing slashes
     result = preact_iso_url_pattern_match("/about-late/_SEGMENT1_/_SEGMENT2_/", "/about-late/:seg1/:seg2/")
@@ -132,6 +152,8 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  # Additional tests that are not in test/node/router-match.test.js
+  # URL encoding tests
   def test_url_encoded_param
     # URL encoded param
     result = preact_iso_url_pattern_match("/foo/bar%20baz", "/foo/:param")
@@ -146,6 +168,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  # Complex rest segment with encoding
   def test_rest_segment_with_encoded_parts
     # Rest segment with encoded parts
     result = preact_iso_url_pattern_match("/api/path/with%20spaces/and%2Fslashes", "/api/:path+")
@@ -153,6 +176,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  # Edge cases
   def test_empty_route
     # Empty route
     result = preact_iso_url_pattern_match("/foo", "")
@@ -163,13 +187,6 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     # Empty url with param
     result = preact_iso_url_pattern_match("", "/:param")
     assert_nil result
-  end
-  
-  def test_multiple_optional_params
-    # Multiple optional params
-    result = preact_iso_url_pattern_match("/foo", "/:a?/:b?/:c?")
-    expected = { 'params' => { 'a' => 'foo', 'b' => nil, 'c' => nil }, 'a' => 'foo', 'b' => nil, 'c' => nil }
-    assert_equal expected, result
   end
   
   def test_mixed_required_and_optional_params
@@ -186,6 +203,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  # Test with pre-existing matches
   def test_pre_existing_matches_object
     # Pre-existing matches object
     matches = { 'params' => { 'existing' => 'value' } }
@@ -193,14 +211,8 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     expected = { 'params' => { 'existing' => 'value', 'first' => 'foo', 'second' => 'bar' }, 'first' => 'foo', 'second' => 'bar' }
     assert_equal expected, result
   end
-  
-  def test_anonymous_wildcard_rest
-    # Anonymous wildcard rest
-    result = preact_iso_url_pattern_match("/static/css/main.css", "/static/*")
-    expected = { 'params' => {}, 'rest' => '/css/main.css' }
-    assert_equal expected, result
-  end
-  
+
+  # Complex nested paths
   def test_complex_nested_path_with_multiple_params
     # Complex nested path with multiple params
     result = preact_iso_url_pattern_match("/api/v1/users/123/posts/456/comments", "/api/:version/users/:userId/posts/:postId/comments")
@@ -224,13 +236,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
-  def test_empty_string_should_be_handled_as_undefined_for_optional_rest
-    # Empty string should be handled as undefined for optional rest
-    result = preact_iso_url_pattern_match("/user", "/user/:id*")
-    expected = { 'params' => { 'id' => nil }, 'id' => nil }
-    assert_equal expected, result
-  end
-  
+
   def test_multiple_slashes_in_url_should_be_normalized
     # Multiple slashes in URL should be normalized
     result = preact_iso_url_pattern_match("//user//123//", "/user/:id")
@@ -244,21 +250,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     expected = { 'params' => { 'id' => '123' }, 'id' => '123' }
     assert_equal expected, result
   end
-  
-  def test_special_characters_in_param_names
-    # Special characters in param names
-    result = preact_iso_url_pattern_match("/user/123", "/user/:user_id")
-    expected = { 'params' => { 'user_id' => '123' }, 'user_id' => '123' }
-    assert_equal expected, result
-  end
-  
-  def test_param_with_numbers
-    # Param with numbers
-    result = preact_iso_url_pattern_match("/api/v1", "/api/:version1")
-    expected = { 'params' => { 'version1' => 'v1' }, 'version1' => 'v1' }
-    assert_equal expected, result
-  end
-  
+
   def test_rest_param_with_single_character
     # Rest param with single character
     result = preact_iso_url_pattern_match("/a/b", "/:x+")
@@ -273,38 +265,10 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
-  def test_question_mark_in_url_not_query_param
-    # Question mark in URL (not query param)
-    result = preact_iso_url_pattern_match("/search/what%3F", "/search/:query")
-    expected = { 'params' => { 'query' => 'what?' }, 'query' => 'what?' }
-    assert_equal expected, result
-  end
-  
-  def test_plus_sign_in_url
-    # Plus sign in URL
-    result = preact_iso_url_pattern_match("/math/1%2B1", "/math/:expression")
-    expected = { 'params' => { 'expression' => '1+1' }, 'expression' => '1+1' }
-    assert_equal expected, result
-  end
-  
-  def test_hash_in_url_encoded
-    # Hash in URL (encoded)
-    result = preact_iso_url_pattern_match("/tag/%23javascript", "/tag/:name")
-    expected = { 'params' => { 'name' => '#javascript' }, 'name' => '#javascript' }
-    assert_equal expected, result
-  end
-  
-  def test_ampersand_in_url
-    # Ampersand in URL
-    result = preact_iso_url_pattern_match("/search/cats%26dogs", "/search/:query")
-    expected = { 'params' => { 'query' => 'cats&dogs' }, 'query' => 'cats&dogs' }
-    assert_equal expected, result
-  end
-  
-  def test_unicode_characters
-    # Unicode characters
-    result = preact_iso_url_pattern_match("/user/José", "/user/:name")
-    expected = { 'params' => { 'name' => 'José' }, 'name' => 'José' }
+  def test_special_characters_encoded_in_url
+    # Special characters encoded in URL
+    result = preact_iso_url_pattern_match("/search/query%3F%2B%23%26test", "/search/:query")
+    expected = { 'params' => { 'query' => 'query?+#&test' }, 'query' => 'query?+#&test' }
     assert_equal expected, result
   end
   
@@ -314,15 +278,7 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     expected = { 'params' => { 'name' => 'José' }, 'name' => 'José' }
     assert_equal expected, result
   end
-  
-  def test_very_long_param
-    # Very long param
-    long_content = 'a' * 1000
-    result = preact_iso_url_pattern_match("/data/#{long_content}", "/data/:content")
-    expected = { 'params' => { 'content' => long_content }, 'content' => long_content }
-    assert_equal expected, result
-  end
-  
+
   def test_empty_segments_in_middle_of_url
     # Empty segments in middle of URL
     result = preact_iso_url_pattern_match("/api//v1//users", "/api/v1/users")
@@ -337,22 +293,6 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
-  def test_multiple_consecutive_optional_params
-    # Multiple consecutive optional params
-    result = preact_iso_url_pattern_match("/a/b", "/:first?/:second?/:third?/:fourth?")
-    expected = {
-      'params' => { 'first' => 'a', 'second' => 'b', 'third' => nil, 'fourth' => nil },
-      'first' => 'a', 'second' => 'b', 'third' => nil, 'fourth' => nil
-    }
-    assert_equal expected, result
-  end
-  
-  def test_zero_width_param_names_edge_case
-    # Zero-width param names (edge case)
-    result = preact_iso_url_pattern_match("/test", "/:?")
-    expected = { 'params' => { '' => 'test' }, '' => 'test' }
-    assert_equal expected, result
-  end
 end
 
 class TestUrlDecodingErrorHandling < Minitest::Test

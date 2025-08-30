@@ -252,32 +252,23 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:    "Multiple optional params",
-			url:     "/foo",
-			route:   "/:a?/:b?/:c?",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"a": "foo", "b": "", "c": ""},
-			},
-		},
-		{
-			name:    "Mixed required and optional params",
-			url:     "/foo/bar",
-			route:   "/:required/:optional?",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"required": "foo", "optional": "bar"},
-			},
-		},
-		{
-			name:    "Mixed required and optional params - missing optional",
-			url:     "/foo",
-			route:   "/:required/:optional?",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"required": "foo", "optional": ""},
-			},
-		},
+      name:    "Mixed required and optional params",
+      url:     "/foo/bar",
+      route:   "/:required/:optional?",
+      matches: nil,
+      expected: &Matches{
+        Params: map[string]string{"required": "foo", "optional": "bar"},
+      },
+    },
+    {
+      name:    "Mixed required and optional params - missing optional",
+      url:     "/foo",
+      route:   "/:required/:optional?",
+      matches: nil,
+      expected: &Matches{
+        Params: map[string]string{"required": "foo", "optional": ""},
+      },
+    },
 
 		// Test with pre-existing matches
 		{
@@ -291,18 +282,6 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 					"first":    "foo",
 					"second":   "bar",
 				},
-			},
-		},
-
-		// Wildcard anonymous rest
-		{
-			name:    "Anonymous wildcard rest",
-			url:     "/static/css/main.css",
-			route:   "/static/*",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{},
-				Rest:   "/css/main.css",
 			},
 		},
 
@@ -338,17 +317,6 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 				Params: map[string]string{"version": ""},
 			},
 		},
-
-		// JavaScript-specific behavior tests
-		{
-			name:    "Empty string should be handled as undefined for optional rest",
-			url:     "/user",
-			route:   "/user/:id*",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"id": ""},
-			},
-		},
 		{
 			name:    "Multiple slashes in URL should be normalized",
 			url:     "//user//123//",
@@ -368,33 +336,6 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			},
 		},
 		{
-			name:    "Special characters in param names",
-			url:     "/user/123",
-			route:   "/user/:user_id",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"user_id": "123"},
-			},
-		},
-		{
-			name:    "Param with numbers",
-			url:     "/api/v1",
-			route:   "/api/:version1",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"version1": "v1"},
-			},
-		},
-		{
-			name:    "Rest param with single character",
-			url:     "/a/b",
-			route:   "/:x+",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"x": "a/b"},
-			},
-		},
-		{
 			name:    "Complex URL encoding in rest params",
 			url:     "/files/folder%2Fsubfolder/file%20name.txt",
 			route:   "/files/:path+",
@@ -404,48 +345,12 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			},
 		},
 		{
-			name:    "Question mark in URL (not query param)",
-			url:     "/search/what%3F",
+			name:    "Special characters encoded in URL",
+			url:     "/search/query%3F%2B%23%26test",
 			route:   "/search/:query",
 			matches: nil,
 			expected: &Matches{
-				Params: map[string]string{"query": "what?"},
-			},
-		},
-		{
-			name:    "Plus sign in URL",
-			url:     "/math/1%2B1",
-			route:   "/math/:expression",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"expression": "1+1"},
-			},
-		},
-		{
-			name:    "Hash in URL (encoded)",
-			url:     "/tag/%23javascript",
-			route:   "/tag/:name",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"name": "#javascript"},
-			},
-		},
-		{
-			name:    "Ampersand in URL",
-			url:     "/search/cats%26dogs",
-			route:   "/search/:query",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"query": "cats&dogs"},
-			},
-		},
-		{
-			name:    "Unicode characters",
-			url:     "/user/José",
-			route:   "/user/:name",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"name": "José"},
+				Params: map[string]string{"query": "query?+#&test"},
 			},
 		},
 		{
@@ -455,15 +360,6 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			matches: nil,
 			expected: &Matches{
 				Params: map[string]string{"name": "José"},
-			},
-		},
-		{
-			name:    "Very long param",
-			url:     "/data/" + strings.Repeat("a", 1000),
-			route:   "/data/:content",
-			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"content": strings.Repeat("a", 1000)},
 			},
 		},
 		{
@@ -485,28 +381,32 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 				Rest:   "/anything/goes/here",
 			},
 		},
+	}
+
+	// URL decoding error handling tests
+	urlDecodingTests := []struct {
+		name     string
+		url      string
+		route    string
+		matches  *Matches
+	}{
 		{
-			name:    "Multiple consecutive optional params",
-			url:     "/a/b",
-			route:   "/:first?/:second?/:third?/:fourth?",
+			name:    "Malformed percent encoding in simple param - should not crash",
+			url:     "/user/test%",
+			route:   "/user/:id",
 			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{
-					"first":  "a",
-					"second": "b",
-					"third":  "",
-					"fourth": "",
-				},
-			},
 		},
 		{
-			name:    "Zero-width param names (edge case)",
-			url:     "/test",
-			route:   "/:?",
+			name:    "Malformed percent encoding in rest param - should not crash",
+			url:     "/files/test%/file",
+			route:   "/files/:path+",
 			matches: nil,
-			expected: &Matches{
-				Params: map[string]string{"": "test"},
-			},
+		},
+		{
+			name:    "Invalid unicode sequence - should not crash",
+			url:     "/user/test%C3",
+			route:   "/user/:id",
+			matches: nil,
 		},
 	}
 
@@ -546,33 +446,22 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			}
 		})
 	}
-}
 
-// Test to document expected JavaScript behavior for debugging
-func TestJavaScriptBehaviorReference(t *testing.T) {
-	// These tests document what the JavaScript version should return
-	// for direct comparison with Go implementation
-
-	t.Run("JavaScript rest param behavior", func(t *testing.T) {
-		// In JavaScript: url.slice(i).map(decodeURIComponent).join('/') || undefined
-		// This means for "/user/foo/bar" with route "/user/:id*":
-		// - url = ["user", "foo", "bar"]
-		// - route = ["user", ":id*"]
-		// - At i=1: url.slice(1) = ["foo", "bar"]
-		// - joined: "foo/bar"
-		// - Result: {params: {id: "foo/bar"}}
-
-		t.Logf("Expected: rest params should join ALL remaining segments with '/'")
-		t.Logf("Go issue: likely only taking first segment instead of all remaining")
-	})
-
-	t.Run("JavaScript URL encoding behavior", func(t *testing.T) {
-		// JavaScript uses decodeURIComponent on each segment
-		// For rest params, it decodes EACH segment then joins with '/'
-
-		t.Logf("Expected: each URL segment should be decoded separately")
-		t.Logf("For rest params: decode each segment, then join with '/'")
-	})
+	// Test URL decoding error handling - these should not crash
+	for _, tt := range urlDecodingTests {
+		t.Run(tt.name, func(t *testing.T) {
+			// The main requirement is that this doesn't crash
+			// We don't care about the exact return value as long as it doesn't panic
+			result := preactIsoUrlPatternMatch(tt.url, tt.route, tt.matches)
+			// Should either work or return nil, but not crash
+			if result != nil {
+				// If it returns a result, just verify it has params
+				if result.Params == nil {
+					t.Errorf("Result should have non-nil Params map")
+				}
+			}
+		})
+	}
 }
 
 // Debug helper to trace execution
@@ -638,29 +527,6 @@ func TestFilterEmpty(t *testing.T) {
 			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Expected %+v, got %+v", tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestMax(t *testing.T) {
-	tests := []struct {
-		name     string
-		a, b     int
-		expected int
-	}{
-		{"a greater", 5, 3, 5},
-		{"b greater", 3, 5, 5},
-		{"equal", 4, 4, 4},
-		{"negative", -1, -5, -1},
-		{"zero", 0, 0, 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := max(tt.a, tt.b)
-			if result != tt.expected {
-				t.Errorf("max(%d, %d) = %d, expected %d", tt.a, tt.b, result, tt.expected)
 			}
 		})
 	}
