@@ -6,11 +6,11 @@ function safeUrldecode($str) {
     if ($str === null || $str === '') {
         return $str;
     }
-    
+
     // urldecode in PHP generally doesn't throw exceptions,
     // but we can add validation for malformed percent encoding
     $decoded = urldecode($str);
-    
+
     // If the original contained a % but decoding didn't change much,
     // it might be malformed, but PHP's urldecode is quite tolerant
     return $decoded;
@@ -32,7 +32,7 @@ function preactIsoUrlPatternMatch($url, $route, $matches = null) {
 
         // segment match:
         if (!$m && $param === $val) continue;
-        
+
         // /foo/* match
         if (!$m && $val && $flag == '*') {
             $decodedParts = array_map('safeUrldecode', array_slice($url, $i));

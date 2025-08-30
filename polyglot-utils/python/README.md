@@ -38,7 +38,7 @@ def preact_iso_url_pattern_match(url, route, matches=None) -> dict | None
 ### Parameters
 
 - `url` (str): The URL path to match
-- `route` (str): The route pattern with parameters  
+- `route` (str): The route pattern with parameters
 - `matches` (dict, optional): Pre-existing matches dictionary to extend
 
 ### Return Value

@@ -1,10 +1,10 @@
 # Run program: ruby preact-iso-url-pattern.rb
 require 'cgi'
 
-# Safe URL decode function with error handling  
+# Safe URL decode function with error handling
 def safe_cgi_unescape(str)
   return str if str.nil? || str.empty?
-  
+
   begin
     CGI.unescape(str)
   rescue ArgumentError

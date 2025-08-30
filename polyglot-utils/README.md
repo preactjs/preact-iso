@@ -122,11 +122,11 @@ def handle_request(url_path):
             # Generate preload tags
             component = route['component']
             entry_info = manifest[component]
-            
+
             preload_tags = []
             for js_file in [entry_info['file']] + entry_info.get('imports', []):
                 preload_tags.append(f'<link rel="modulepreload" crossorigin href="{js_file}">')
-            
+
             for css_file in entry_info.get('css', []):
                 preload_tags.append(f'<link rel="stylesheet" crossorigin href="{css_file}">')
 
@@ -134,13 +134,13 @@ def handle_request(url_path):
             title = route['title']
             for param, value in matches['params'].items():
                 title = title.replace(f':{param}', value)
-            
+
             return {
                 'preload_tags': preload_tags,
                 'title': title,
                 'params': matches['params']
             }
-    
+
     # No match found - return early 404
     return None
 ```
@@ -161,7 +161,7 @@ Find the corresponding language's sub-directory. Each language has a README that
 
 # Or run individual language tests
 cd go && go test -v
-cd python && python3 test_preact_iso_url_pattern.py  
+cd python && python3 test_preact_iso_url_pattern.py
 cd ruby && ruby test_preact_iso_url_pattern.rb
 cd php && php test_preact_iso_url_pattern.php
 ```

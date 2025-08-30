@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Preact ISO URL Pattern Matching - Test Runner  
+# Preact ISO URL Pattern Matching - Test Runner
 # Runs tests for all language implementations
 
 # Colors for output
@@ -25,10 +25,10 @@ run_test() {
     local directory=$2
     local command=$3
     local description=$4
-    
+
     echo -e "${BLUE}Testing $language${NC} ($description)"
     echo "----------------------------------------"
-    
+
     # Change to test directory and run command
     if cd "$directory" 2>/dev/null; then
         if eval "$command"; then
@@ -40,7 +40,7 @@ run_test() {
     else
         echo -e "${RED}$language tests FAILED - Directory not found${NC}"
     fi
-    
+
     echo
     # Return to script directory
     cd "$SCRIPT_DIR" 2>/dev/null || true
