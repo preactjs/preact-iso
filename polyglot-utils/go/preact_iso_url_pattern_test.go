@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+// Note 1: This is different from JS implementation. Here it is empty string and not nil
+// This was intentionally implemented this way, but we can change if it's a problem
+
 func TestPreactIsoUrlPatternMatch(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -60,9 +63,19 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			},
 		},
 		{
+			name:    "Rest segment - match multiple segments",
+			url:     "/user/foo/bar/baz",
+			route:   "/user/*",
+			matches: nil,
+			expected: &Matches{
+				Params: map[string]string{},
+				Rest:   "/foo/bar/baz",
+			},
+		},
+		{
 			name:     "Rest segment - no match",
-			url:      "/",
-			route:    "/user/:id/*",
+			url:      "/user",
+			route:    "/user/*",
 			matches:  nil,
 			expected: nil,
 		},
@@ -88,6 +101,13 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 				Rest:   "/foo/bar/bob",
 			},
 		},
+		{
+			name:     "Param with rest - no match",
+			url:      "/",
+			route:    "/user/:id/*",
+			matches:  nil,
+			expected: nil,
+		},
 
 		// Optional param tests
 		{
@@ -96,6 +116,7 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			route:   "/user/:id?",
 			matches: nil,
 			expected: &Matches{
+				// Check "Note 1" at the top of the file
 				Params: map[string]string{"id": ""},
 			},
 		},
@@ -114,6 +135,7 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			route:   "/user/:id*",
 			matches: nil,
 			expected: &Matches{
+				// Check "Note 1" at the top of the file
 				Params: map[string]string{"id": ""},
 			},
 		},
@@ -125,6 +147,13 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			expected: &Matches{
 				Params: map[string]string{"id": "foo/bar"},
 			},
+		},
+		{
+			name:     "Optional param - no match base",
+			url:      "/",
+			route:    "/user/:id*",
+			matches:  nil,
+			expected: nil,
 		},
 
 		// Required rest param tests (/:x+)
@@ -175,6 +204,7 @@ func TestPreactIsoUrlPatternMatch(t *testing.T) {
 			},
 		},
 
+		// Additional tests that are not in test/node/router-match.test.js
 		// URL encoding tests
 		{
 			name:    "URL encoded param",

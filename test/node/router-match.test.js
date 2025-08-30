@@ -71,6 +71,8 @@ test('Optional rest param route "/:x*"', () => {
 		query: {}
 	});
 
+	// TODO: This test is exactly same as the above test?
+	// `const matchedResult = execPath('/user', '/user/:id*');`
 	const emptyResult = execPath('/user', '/user/:id*');
 	assert.equal(emptyResult, {
 		path: '/user',

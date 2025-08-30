@@ -35,8 +35,19 @@ class TestPreactIsoUrlPatternMatch(unittest.TestCase):
         expected = {'params': {}, 'rest': '/foo'}
         self.assertEqual(result, expected)
     
+    def test_rest_segment_match_multiple_segments(self):
+        """Rest segment - match multiple segments"""
+        result = preact_iso_url_pattern_match("/user/foo/bar/baz", "/user/*")
+        expected = {'params': {}, 'rest': '/foo/bar/baz'}
+        self.assertEqual(result, expected)
+    
     def test_rest_segment_no_match(self):
         """Rest segment - no match"""
+        result = preact_iso_url_pattern_match("/user", "/user/*")
+        self.assertIsNone(result)
+    
+    def test_rest_segment_no_match_different_case(self):
+        """Rest segment - no match different case"""
         result = preact_iso_url_pattern_match("/", "/user/:id/*")
         self.assertIsNone(result)
     

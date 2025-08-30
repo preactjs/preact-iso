@@ -99,7 +99,18 @@ class TestPreactIsoUrlPatternMatch {
         $this->assertEqual($expected, $result);
     }
     
+    public function test_rest_segment_match_multiple_segments() {
+        $result = preactIsoUrlPatternMatch("/user/foo/bar/baz", "/user/*");
+        $expected = ['params' => (object)[], 'rest' => '/foo/bar/baz'];
+        $this->assertEqual($expected, $result);
+    }
+    
     public function test_rest_segment_no_match() {
+        $result = preactIsoUrlPatternMatch("/user", "/user/*");
+        $this->assertNull($result);
+    }
+    
+    public function test_rest_segment_no_match_different_case() {
         $result = preactIsoUrlPatternMatch("/", "/user/:id/*");
         $this->assertNull($result);
     }

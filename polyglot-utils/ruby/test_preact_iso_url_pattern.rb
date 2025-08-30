@@ -39,8 +39,21 @@ class TestPreactIsoUrlPatternMatch < Minitest::Test
     assert_equal expected, result
   end
   
+  def test_rest_segment_match_multiple_segments
+    # Rest segment - match multiple segments
+    result = preact_iso_url_pattern_match("/user/foo/bar/baz", "/user/*")
+    expected = { 'params' => {}, 'rest' => '/foo/bar/baz' }
+    assert_equal expected, result
+  end
+  
   def test_rest_segment_no_match
     # Rest segment - no match
+    result = preact_iso_url_pattern_match("/user", "/user/*")
+    assert_nil result
+  end
+  
+  def test_rest_segment_no_match_different_case
+    # Rest segment - no match different case
     result = preact_iso_url_pattern_match("/", "/user/:id/*")
     assert_nil result
   end

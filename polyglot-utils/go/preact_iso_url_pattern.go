@@ -37,9 +37,9 @@ func preactIsoUrlPatternMatch(urlStr, route string, matches *Matches) *Matches {
 		if i < len(urlParts) {
 			val = urlParts[i]
 		}
-
+		
 		// segment match:
-		if m == "" && param == val {
+		if m == "" && param != "" && param == val {
 			continue
 		}
 
