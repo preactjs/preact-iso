@@ -34,9 +34,51 @@ Typical implementation flow:
 
 ### Example - preloading of JS, CSS
 
-Here's how you might integrate this into a server setup:
+Here's how you might integrate this into a server setup. Let's say you have a client side `routes.js` as follows:
 
-### 1. Route Configuration (routes.json)
+```js
+import { lazy } from 'preact-iso';
+
+export const routes = [
+  {
+    "path": "/users/:userId/posts",
+    "component": lazy(() => import("pages/UserPosts.jsx")),
+    "title": "Posts by :userId"
+  },
+  {
+    "path": "/products/:category/:id",
+    "component": lazy(() => import("pages/Product.jsx")),
+    "title": "Product :id"
+  }
+];
+```
+
+1. **Generate Routes JSON (routes.json)**
+
+You can use the following standalone node.js script to create `routes.json` during build (you could convert it into a plugin for your frontend build tool):
+```js
+const routeDir = path.resolve(__dirname, 'client/src/routes');
+let routesFile = fs.readFileSync(path.resolve(routeDir, 'routes.js'), 'utf-8');
+routesFile = routesFile.replace(/lazy\s*\(\s*\(\s*\)\s*=>\s*import\s*\(\s*(.+)\s*\)\s*\)\s*(,?)/g, '$1$2');
+const fileName = path.resolve(__dirname, 'routes-temp.js')
+fs.writeFileSync(fileName, routesFile, 'utf-8');
+const routes = (await import(fileName)).default;
+fs.unlinkSync(fileName);
+const routeInfo = routes.map((route) => ({
+  path: route.path,
+  title: typeof route.title === 'string' ? route.title : null,
+  Component: path.relative(__dirname, path.resolve(routeDir, `${route.Component}.jsx`)),
+  default: route.default,
+}));
+// console.log(routeInfo);
+fs.writeFileSync(
+  path.resolve(__dirname, 'dist/routes.json'),
+  JSON.stringify(routeInfo, null, 2),
+  'utf-8'
+);
+```
+
+The script produces the following `routes.json` file:
 ```json
 [
   {
@@ -52,7 +94,9 @@ Here's how you might integrate this into a server setup:
 ]
 ```
 
-### 2. Build Manifest (manifest.json)
+2. **Build Manifest (manifest.json)**
+
+This is the file your client build tool generates. Check your build tool's documentation for exact format. Below is an example with few important fields from a Vite manifest file:
 ```json
 {
   "pages/UserPosts.jsx": {
@@ -63,13 +107,13 @@ Here's how you might integrate this into a server setup:
 }
 ```
 
-### 3. Server Implementation
+3. **Server Implementation**
 ```python
 # Python example
 import json
 
-routes = json.load(open('routes.json'))
-manifest = json.load(open('manifest.json'))
+routes = json.load(open('../dist/routes.json'))
+manifest = json.load(open('../dist/.vite/manifest.json'))
 
 def handle_request(url_path):
     for route in routes:
@@ -85,6 +129,7 @@ def handle_request(url_path):
             
             for css_file in entry_info.get('css', []):
                 preload_tags.append(f'<link rel="stylesheet" crossorigin href="{css_file}">')
+
             # Generate dynamic title
             title = route['title']
             for param, value in matches['params'].items():
@@ -100,7 +145,7 @@ def handle_request(url_path):
     return None
 ```
 
-This approach gives you the performance benefits of resource preloading without the complexity of full server-side rendering!
+This approach gives you the performance benefits of resource preloading without the complexity of full server-side rendering.
 
 ## Available Languages
 

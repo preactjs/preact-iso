@@ -92,6 +92,10 @@ export async function prerender(data) {
 }
 ```
 
+## Non-JS Server
+
+prerendering is not an option for servers that cannot run JavaScript. But you can still opt to add preload head tags for JS and CSS for the pages while you serve the app shell in the `<body>` tag. Doing so would speed up your page load. However to achieve that, your server needs to be able to understand which preact-iso route would load for a given URL. [polyglot-utils](https://github.com/preactjs/preact-iso/tree/main/polyglot-utils/) provides utilities and guides on how to achieve that.
+
 ## Nested Routing
 
 Some applications would benefit from having routers of multiple levels, allowing to break down the routing logic into smaller components. This is especially useful for larger applications, and we solve this by allowing for multiple nested `<Router>` components.
