@@ -142,6 +142,10 @@ It will not be used for any of the following:
   - `/movies`
   - `/movies/`
 
+## Non-JS Servers
+
+For those using non-JS servers (e.g., PHP, Python, Ruby, etc.) to serve your Preact app, you may want to use our ["polyglot-utils"](./polyglot-utils), a collection of our route matching logic ported to various other languages. Combined with a route manifest, this will allow your server to better understand which assets will be needed at runtime for a given URL, allowing you to say insert preload tags for those assets in the HTML head prior to serving the page.
+
 ---
 
 ## API Docs
