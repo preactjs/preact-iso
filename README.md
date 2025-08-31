@@ -13,6 +13,7 @@ Isomorphic async tools for Preact.
   - [Routing](#routing)
   - [Prerendering](#prerendering)
   - [Nested Routing](#nested-routing)
+  - [Non-JS Servers](#non-js-servers)
   - [API Docs](#api-docs)
     - [\<LocationProvider\>](#locationprovider)
     - [\<Router\>](#router)
