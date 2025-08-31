@@ -60,8 +60,8 @@ test('Optional param route', () => {
 });
 
 test('Optional rest param route "/:x*"', () => {
-	const matchedResult = execPath('/user', '/user/:id*');
-	assert.equal(matchedResult, { path: '/user', params: { id: undefined }, id: undefined, query: {} });
+	const matchedResult = execPath('/user/foo', '/user/:id*');
+	assert.equal(matchedResult, { path: '/user/foo', params: { id: 'foo' }, id: 'foo', query: {} });
 
 	const matchedResultWithSlash = execPath('/user/foo/bar', '/user/:id*');
 	assert.equal(matchedResultWithSlash, {
