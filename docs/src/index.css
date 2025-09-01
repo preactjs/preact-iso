@@ -1,0 +1,84 @@
+@import "prismjs/themes/prism-tomorrow.css";
+
+:root {
+  --bg: #0d1117;
+  --fg: #fff;
+  --accent: #646cff;
+  --accent-2: #7e64ff;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  background: linear-gradient(90deg, #1e1e2f, #111);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+nav {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 2rem;
+}
+
+nav .brand {
+  font-weight: bold;
+  margin-right: auto;
+}
+
+nav a {
+  color: var(--fg);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+nav a.active {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+main {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+h2 {
+  margin-top: 3rem;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+code {
+  background: #1e1e2f;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: #1e1e2f;
+  border-radius: 8px;
+}
+
+a {
+  color: var(--accent);
+}
+
+section {
+  margin-top: 2rem;
+}

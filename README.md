@@ -415,6 +415,23 @@ locationStub('/foo/bar?baz=qux#quux');
 console.log(location.pathname); // "/foo/bar"
 ```
 
+## Docs
+
+A documentation site built with `preact-iso` lives in [`docs/`](./docs). It includes a quickstart, guides and a full API reference, all powered by the library itself. Install dependencies and start the dev server:
+
+```
+cd docs
+npm install
+npm run dev
+```
+
+To build the documentation for production:
+
+```
+npm run build
+```
+
+
 ## License
 
 [MIT](./LICENSE)
