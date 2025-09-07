@@ -59,6 +59,32 @@ type RoutableProps =
 
 export type RouteProps<Props> = RoutableProps & { component: AnyComponent<Props> };
 
+export type RoutePropsForPath<Path extends string> = Path extends '*'
+	? { params: {}; rest: string }
+
+	: Path extends `:${infer placeholder}?/${infer rest}`
+	? { [k in placeholder]?: string } & { params: RoutePropsForPath<rest>['params'] & { [k in placeholder]?: string } } & Omit<RoutePropsForPath<rest>, 'params'>
+
+	: Path extends `:${infer placeholder}/${infer rest}`
+	? { [k in placeholder]: string } & { params: RoutePropsForPath<rest>['params'] & { [k in placeholder]: string } } & Omit<RoutePropsForPath<rest>, 'params'>
+
+	: Path extends `:${infer placeholder}?`
+	? { [k in placeholder]?: string } & { params: { [k in placeholder]?: string } }
+
+	: Path extends `:${infer placeholder}*`
+	? { [k in placeholder]?: string } & { params: { [k in placeholder]?: string } }
+
+	: Path extends `:${infer placeholder}+`
+	? { [k in placeholder]: string } & { params: { [k in placeholder]: string } }
+
+	: Path extends `:${infer placeholder}`
+	? { [k in placeholder]: string } & { params: { [k in placeholder]: string } }
+
+	: Path extends (`/${infer rest}` | `${infer _}/${infer rest}`)
+	? RoutePropsForPath<rest>
+
+	: { params: {} };
+
 export function Route<Props>(props: RouteProps<Props> & Partial<Props>): VNode;
 
 declare module 'preact' {

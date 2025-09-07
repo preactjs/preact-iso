@@ -261,6 +261,16 @@ The difference between `/:id*` and `/:id/*` is that in the former, the `id` para
   - `/profile/:id/*`, with `/profile/123/abc`
     - `id` is `123`
 
+You can narrow prop types for your routes using `RoutePropsForPath<path>`:
+```js
+import type { RoutePropsForPath } from 'preact-iso/router'
+
+function User(props: RoutePropsForPath<'/user/:id'>) {
+	props.user.id2 // type error
+	props.user.id // no type error
+}
+```
+
 ### `useLocation`
 
 A hook to work with the `LocationProvider` to access location context.
