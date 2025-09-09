@@ -262,8 +262,8 @@ The difference between `/:id*` and `/:id/*` is that in the former, the `id` para
     - `id` is `123`
 
 You can narrow prop types for your routes using `RoutePropsForPath<path>`:
-```js
-import type { RoutePropsForPath } from 'preact-iso/router'
+```ts
+import type { RoutePropsForPath } from 'preact-iso'
 
 function User(props: RoutePropsForPath<'/user/:id'>) {
 	props.user.id2 // type error
