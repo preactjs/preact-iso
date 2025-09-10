@@ -1,4 +1,4 @@
-import { h, createContext, cloneElement, toChildArray } from 'preact';
+import { h, createContext, cloneElement, toChildArray, Fragment } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
@@ -157,7 +157,30 @@ export function Router(props) {
 	didSuspend.current = false;
 
 	let pathRoute, defaultRoute, matchProps;
-	toChildArray(props.children).some((/** @type {VNode<any>} */ vnode) => {
+	
+	// Flatten all routes from nested children first
+	const flattenRoutes = (children, routes = []) => {
+		toChildArray(children).forEach((/** @type {VNode<any>} */ vnode) => {
+			// Skip null/undefined/false children
+			if (!vnode) return;
+			
+			// Check if this is a route component (has path or default prop)
+			if (vnode.props && (vnode.props.path !== undefined || vnode.props.default !== undefined)) {
+				routes.push(vnode);
+			}
+			// If it's a Fragment or wrapper component, recurse into its children
+			else if (vnode.type === Fragment || vnode.props?.children) {
+				flattenRoutes(vnode.props?.children, routes);
+			}
+		});
+		return routes;
+	};
+	
+	// Get all routes from potentially nested structure
+	const allRoutes = flattenRoutes(props.children);
+	
+	// Now process routes as before
+	allRoutes.some((/** @type {VNode<any>} */ vnode) => {
 		const matches = exec(rest, vnode.props.path, (matchProps = { ...vnode.props, path: rest, query, params, rest: '' }));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);

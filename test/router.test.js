@@ -1076,4 +1076,98 @@ describe('hydration', () => {
 
 		options.__b = oldOptionsVnode;
 	});
+
+	it('should support routes nested in Fragments and wrapper components', async () => {
+		const Home = () => <h1>Home</h1>;
+		const About = () => <h1>About</h1>;
+		const Contact = () => <h1>Contact</h1>;
+		const Nested = () => <h1>Nested</h1>;
+
+		render(
+			<LocationProvider>
+				<Router>
+					{/* Routes in a Fragment */}
+					<Fragment>
+						<Route path="/" component={Home} default />
+						<Route path="/about" component={About} />
+					</Fragment>
+					
+					{/* Routes nested in a wrapper div */}
+					<div className="route-wrapper">
+						<Route path="/contact" component={Contact} />
+					</div>
+					
+					{/* Deeply nested routes */}
+					<Fragment>
+						<div>
+							<Fragment>
+								<Route path="/nested" component={Nested} />
+							</Fragment>
+						</div>
+					</Fragment>
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		// Test default route
+		expect(scratch.querySelector('h1').textContent).to.equal('Home');
+
+		// Test route in Fragment
+		loc.route('/about');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('About');
+
+		// Test route in wrapper div
+		loc.route('/contact');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('Contact');
+
+		// Test deeply nested route
+		loc.route('/nested');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('Nested');
+	});
+
+	it('should support routes with mixed nesting and fragments', async () => {
+		const A = () => <h1>A</h1>;
+		const B = () => <h1>B</h1>;
+		const C = () => <h1>C</h1>;
+		const Default = () => <h1>Default</h1>;
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/a" component={A} />
+					<Fragment>
+						<Route path="/b" component={B} />
+						<div>
+							<Route path="/c" component={C} />
+						</div>
+					</Fragment>
+					<Route default component={Default} />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		// Test mixed routes work correctly
+		loc.route('/a');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('A');
+
+		loc.route('/b');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('B');
+
+		loc.route('/c');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('C');
+
+		loc.route('/unknown');
+		await sleep(1);
+		expect(scratch.querySelector('h1').textContent).to.equal('Default');
+	});
 })
