@@ -169,7 +169,7 @@ export function Router(props) {
 				routes.push(vnode);
 			}
 			// If it's a Fragment or wrapper component, recurse into its children
-			else if (vnode.type === Fragment || vnode.props?.children) {
+			else if (vnode.props && vnode.props.children) {
 				flattenRoutes(vnode.props?.children, routes);
 			}
 		});
