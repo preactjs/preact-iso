@@ -165,7 +165,7 @@ export function Router(props) {
 			if (!vnode) return;
 			
 			// Check if this is a route component (has path or default prop)
-			if (vnode.props && (vnode.props.path !== undefined || vnode.props.default !== undefined)) {
+			if (vnode.props && (vnode.props.path != null || vnode.props.default != null)) {
 				routes.push(vnode);
 			}
 			// If it's a Fragment or wrapper component, recurse into its children
