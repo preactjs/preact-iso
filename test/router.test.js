@@ -1001,6 +1001,42 @@ describe('Router', () => {
 		expect(Shadow).to.have.been.calledOnce;
 		expect(scratch).to.have.property('textContent', 'Shadow Route');
 	});
+
+	it('should not preserve param state after match failures', async () => {
+		const Params = () => {
+			const { params } = useRoute();
+			return <h1>{JSON.stringify(params)}</h1>
+		};
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/category/:id" component={Params} />
+					<Route path="/category/:categoryId/products/new" component={Params} />
+					<Route path="/category/:categoryId/products/:id/edit" component={Params} />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		loc.route('/category/123');
+		await sleep(10);
+
+		expect(scratch).to.have.property('textContent', '{"id":"123"}');
+
+		loc.route('/category/123/products/new');
+		await sleep(10);
+
+		// If the same `params` object was reused, this would also have an `id` property
+		// from a failed partial match against the first route.
+		expect(scratch).to.have.property('textContent', '{"categoryId":"123"}');
+
+		loc.route('/category/123/products/456/edit');
+		await sleep(10);
+
+		expect(scratch).to.have.property('textContent', '{"categoryId":"123","id":"456"}');
+	});
 });
 
 const MODE_HYDRATE = 1 << 5;
