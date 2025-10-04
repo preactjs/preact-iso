@@ -1,0 +1,13 @@
+{
+	"extends": "../jsconfig.json",
+	"compilerOptions": {
+		"types": ["mocha"]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"**/*.js",
+		"**/*.jsx",
+		"../src/internal.d.ts"
+	],
+}

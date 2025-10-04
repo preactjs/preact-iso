@@ -43,7 +43,7 @@ describe('Router', () => {
 
 
 	it('should throw a clear error if the LocationProvider is missing', () => {
-		const Home = () => <h1>Home</h1>;
+		const Home = sinon.fake(() => <h1>Home</h1>);
 
 		try {
 			render(
@@ -60,6 +60,7 @@ describe('Router', () => {
 
 	it('should strip trailing slashes from path', async () => {
 		render(
+			// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
 			<LocationProvider url="/a/">
 				<ShallowLocation />
 			</LocationProvider>,
@@ -359,7 +360,8 @@ describe('Router', () => {
 
 		const old = options.vnode;
 		options.vnode = (vnode) => {
-			if (typeof vnode.type === 'function' && vnode.props.r !== undefined) {
+			const props = /** @type {any} */ (vnode.props);
+			if (typeof vnode.type === 'function' && props.r !== undefined) {
 				renderRefCount += 1;
 			}
 

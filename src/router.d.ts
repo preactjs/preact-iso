@@ -35,7 +35,7 @@ export function Router(props: {
 	onRouteChange?: (url: string) => void;
 	onLoadEnd?: (url: string) => void;
 	onLoadStart?: (url: string) => void;
-	children?: NestedArray<VNode>;
+	children?: VNode | NestedArray<VNode>;
 }): VNode;
 
 interface LocationHook {
@@ -53,11 +53,9 @@ interface RouteHook {
 }
 export const useRoute: () => RouteHook;
 
-type RoutableProps =
-	| { path: string; default?: false; }
-	| { path?: never; default: true; }
-
-export type RouteProps<Props> = RoutableProps & { component: AnyComponent<Props> };
+export type RouteProps<Props> =
+	| { path: string; default?: false; component: AnyComponent<Props> }
+	| { path?: never; default: true; component: AnyComponent<Props> };
 
 export type RoutePropsForPath<Path extends string> = Path extends '*'
 	? { params: {}; rest: string }
@@ -86,6 +84,13 @@ export type RoutePropsForPath<Path extends string> = Path extends '*'
 	: { params: {} };
 
 export function Route<Props>(props: RouteProps<Props> & Partial<Props>): VNode;
+
+// Some HTML elements already have a `default` prop. So when trying to define a property on all elements,
+// the types of the existing `default` prop and our `default` prop conflict. To workaround this, we define
+// our `default` prop to be the same type as the existing `default` prop so they don't collide.
+//
+// TODO: Is there a better way to do this?
+interface RoutableProps { path?: string; default?: boolean | undefined | { value: boolean | undefined }; }
 
 declare module 'preact' {
 	namespace JSX {

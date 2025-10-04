@@ -47,7 +47,7 @@ export default async function prerender(vnode, options) {
  * @param {string} path - current URL path
  */
 export function locationStub(path) {
-	globalThis.location = {};
+	globalThis.location = /** @type {any} */ ({});
 	const u = new URL(path, 'http://localhost');
 	for (const i in u) {
 		try {

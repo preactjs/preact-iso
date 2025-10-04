@@ -2,9 +2,7 @@ import { h, createContext, cloneElement, toChildArray } from 'preact';
 import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
- * @template T
- * @typedef {import('preact').RefObject<T>} RefObject
- * @typedef {import('./internal.d.ts').VNode} VNode
+ * @import { VNode, RefObject } from 'preact';
  */
 
 /** @type {boolean} */
@@ -130,7 +128,7 @@ export function LocationProvider(props) {
 }
 
 const RESOLVED = Promise.resolve();
-/** @this {import('./internal.d.ts').AugmentedComponent} */
+/** @this {import('preact').Component} */
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
