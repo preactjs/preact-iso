@@ -819,6 +819,27 @@ describe('Router', () => {
 		pushState.restore();
 	});
 
+	it('should ignore clicks on download links', async () => {
+		const downloadHref = URL.createObjectURL(new Blob(['Hello World!'], { type: 'text/plain' }));
+
+		render(
+			<LocationProvider>
+				<Router>
+					<a href={downloadHref} download="hello-world.txt">Download Me</a>
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		scratch.querySelector('a[download]').click();
+		await sleep(1);
+
+		// If the router attempted to navigate, the page would throw a SecurityError
+		// and the test would fail.
+		expect(true).to.equal(true);
+	});
+
 	it('should normalize children', async () => {
 		const pushState = sinon.spy(history, 'pushState');
 		const Route = sinon.fake(() => <a href="/foo#foo">foo</a>);
