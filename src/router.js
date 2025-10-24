@@ -43,7 +43,8 @@ function handleNav(state, action) {
 			link.origin != location.origin ||
 			/^#/.test(href) ||
 			!/^(_?self)?$/i.test(link.target) ||
-			!isInScope(href)
+			!isInScope(href) ||
+			link.download
 		) {
 			return state;
 		}
