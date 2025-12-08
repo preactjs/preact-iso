@@ -88,8 +88,15 @@ export type RoutePropsForPath<Path extends string> = Path extends '*'
 export function Route<Props>(props: RouteProps<Props> & Partial<Props>): VNode;
 
 declare module 'preact' {
+	// The code below automatically adds `path` and `default` as optional props for every component
+	// (effectively reserving those names, so no component should use those names in its own props).
+	// These declarations extend from `RouteableProps`, which is not allowed in modern TypeScript and
+	// causes a TS2312 error.  However, the compiler does seems to honor the intent of this code, so
+	// to avoid an API regression, let's ignore the error rather than loosening the type validation.
 	namespace JSX {
+		/** @ts-ignore */
 		interface IntrinsicAttributes extends RoutableProps {}
 	}
+	/** @ts-ignore */
 	interface Attributes extends RoutableProps {}
 }
