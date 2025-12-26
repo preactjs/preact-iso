@@ -197,6 +197,16 @@ const App = () => (
 );
 ```
 
+#### Restore default browser navigation for one link
+
+The router intercepts `<a />` links that point to app pages. When you click such a link, it switches the route without loading a full page. It's quite common for users to want to opt-out of this behavior. Here are the rules for making `preact-iso` ignore a link:
+
+1. You're on `https://example.org` but the link points to `https://example.com`.
+2. The link points to an identifier on the current page, i.e. to `#section`.
+3. The link's `target` is `_blank` (new tab) or `_top` (same window) -- this is what you probably want to set.
+4. The link points outside the `scope` of your `LocationProvider`.
+5. The link has a `download` attribute.
+
 ### `Route`
 
 
@@ -384,7 +394,7 @@ However, it is just a simple utility method. By no means is it essential to use,
 
 ### `prerender`
 
-Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
+Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external (i.e. not `target="_blank"`) URL strings found in links on the generated page.
 
 Pairs primarily with [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration)'s prerendering.
 
