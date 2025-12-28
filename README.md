@@ -171,6 +171,17 @@ const App = () => (
 );
 ```
 
+#### Restore default browser navigation for one link
+
+The location provider intercepts interactions upon anchor tags (`<a />`) to facilitate single-page app navigation. Some interactions, however, are ignored to avoid hindering users as well as giving devs ways to opt-out and resume standard browser behavior. The rules for ignoring are as such:
+
+1. You hold a modifier key (ctrl, meta, alt, shift) or click a mouse button other than the main one.
+2. Cross-origin links, e.g., you're on `https://example.org` but the link points to `https://example.com`.
+3. The link points to a fragment identifier on the current page, e.g., to `#section`.
+4. The link's `target` is set to anything but `_self` (such as `_blank` or `_top`) -- this is a convenient way to opt-out.
+5. The link points outside the `scope` of your `LocationProvider`.
+6. The link has a `download` attribute.
+
 ### `Router`
 
 Props:
@@ -384,7 +395,7 @@ However, it is just a simple utility method. By no means is it essential to use,
 
 ### `prerender`
 
-Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external URL strings found in links on the generated page.
+Renders a Virtual DOM tree to an HTML string using `preact-render-to-string`. The Promise returned from `prerender()` resolves to an Object with `html` and `links[]` properties. The `html` property contains your pre-rendered static HTML markup, and `links` is an Array of any non-external (either no `target` or something other than `target="_self"`) URL strings found in links on the generated page.
 
 Pairs primarily with [`@preact/preset-vite`](https://github.com/preactjs/preset-vite#prerendering-configuration)'s prerendering.
 
