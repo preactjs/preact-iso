@@ -43,6 +43,7 @@ function handleNav(state, e) {
 	const url = new URL(e.destination.url);
 
 	if (
+		!e.canIntercept ||
 		e.hashChange ||
 		e.downloadRequest !== null ||
 		!isSameWindow(e) ||
@@ -54,8 +55,7 @@ function handleNav(state, e) {
 		return state;
 	}
 
-	//if (e.canIntercept)
-		e.intercept();
+	e.intercept();
 	return url.href.replace(url.origin, '');
 }
 
