@@ -619,7 +619,7 @@ describe('Router', () => {
 				// might be a bug in Chrome's implementation:
 				// https://github.com/WICG/navigation-api?tab=readme-ov-file#restrictions-on-firing-canceling-and-responding
 				if (target === '_blank' || target === '_BLANK' || target === 'custom') return;
-				
+
 				scratch.querySelector(`#${createId(target)}`).click();
 				await sleep(1);
 				expect(triedToNavigate).to.be.true;
@@ -644,10 +644,10 @@ describe('Router', () => {
 
 		let triedToNavigate = false;
 		const handler = (e) => {
+			e.intercept();
 			if (e['preact-iso-ignored']) {
 				triedToNavigate = true;
 			}
-			if (e.canIntercept) e.intercept();
 		}
 
 		it('should support the `scope` prop (string)', async () => {
