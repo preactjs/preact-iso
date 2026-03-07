@@ -40,6 +40,10 @@ describe('Router', () => {
 		document.body.appendChild(scratch);
 		history.replaceState(null, null, '/');
 	});
+	
+	afterEach(() => {
+	  sinon.restore();
+	});
 
 
 	it('should throw a clear error if the LocationProvider is missing', () => {
