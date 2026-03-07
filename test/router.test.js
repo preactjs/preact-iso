@@ -968,12 +968,12 @@ describe('Router', () => {
 
 		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
 
-		navigation.back();
+		await navigation.back().finished;
 		await sleep(10);
 
 		expect(loc).to.deep.include({ url: '/', path: '/', searchParams: {} });
 
-		navigation.forward();
+		await navigation.forward().finished;
 		await sleep(10);
 
 		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
