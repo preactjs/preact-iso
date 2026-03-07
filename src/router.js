@@ -41,17 +41,12 @@ function handleNav(state, e) {
 	// TODO: Double-check this can't fail to parse.
 	// `.destination` is read-only, so I'm hoping it guarantees a valid URL.
 	const url = new URL(e.destination.url);
-	const isTraversal = e.navigationType === 'traverse';
 
 	if (
 		e.hashChange ||
 		e.downloadRequest !== null ||
 		!isSameWindow(e) ||
-		!isInScope(url) ||
-		// For traversals (back/forward), canIntercept may be false (e.g. when the
-		// destination entry was created via history.replaceState), but the URL
-		// changes regardless — so we only gate on canIntercept for push/replace.
-		(!isTraversal && !e.canIntercept)
+		!isInScope(url)
 	) {
 		// This is set purely for our test suite so that we can check
 		// if the event was ignored in another `navigate` handler.
@@ -59,7 +54,8 @@ function handleNav(state, e) {
 		return state;
 	}
 
-	if (e.canIntercept) e.intercept();
+	//if (e.canIntercept)
+		e.intercept();
 	return url.href.replace(url.origin, '');
 }
 
