@@ -1060,6 +1060,224 @@ describe('Router', () => {
 	});
 });
 
+describe('onBeforeRouteChange', () => {
+	let scratch, loc;
+
+	const ShallowLocation = () => {
+		loc = useLocation();
+		return null;
+	};
+
+	beforeEach(() => {
+		if (scratch) {
+			render(null, scratch);
+			scratch.remove();
+		}
+		// Clean up any leftover scratch elements from other test suites
+		let existing;
+		while ((existing = document.querySelector('scratch'))) {
+			render(null, existing);
+			existing.remove();
+		}
+		loc = undefined;
+		scratch = document.createElement('scratch');
+		document.body.appendChild(scratch);
+		history.replaceState(null, null, '/');
+	});
+
+	it('should navigate normally when proceed() is called synchronously', async () => {
+		const beforeChange = sinon.fake((url, proceed) => proceed());
+		const Home = sinon.fake(() => h('h1', null, 'Home'));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		expect(scratch).to.have.property('textContent', 'Home');
+		beforeChange.resetHistory();
+
+		loc.route('/about');
+		await sleep(1);
+
+		expect(beforeChange).to.have.been.calledOnce;
+		expect(beforeChange.firstCall.args[0]).to.equal('/about');
+		expect(typeof beforeChange.firstCall.args[1]).to.equal('function');
+		expect(scratch).to.have.property('textContent', 'About');
+		expect(loc).to.deep.include({ url: '/about', path: '/about' });
+	});
+
+	it('should defer navigation until proceed() is called', async () => {
+		let savedProceed;
+		const beforeChange = sinon.fake((url, proceed) => {
+			savedProceed = proceed;
+		});
+		const Home = sinon.fake(() => h('h1', null, 'Home'));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		expect(scratch).to.have.property('textContent', 'Home');
+		beforeChange.resetHistory();
+
+		loc.route('/about');
+		await sleep(1);
+
+		expect(beforeChange).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'Home');
+		expect(loc).to.deep.include({ path: '/' });
+
+		savedProceed();
+		await sleep(1);
+
+		expect(scratch).to.have.property('textContent', 'About');
+		expect(loc).to.deep.include({ url: '/about', path: '/about' });
+	});
+
+	it('should fire for <a> tag click navigation', async () => {
+		const beforeChange = sinon.fake((url, proceed) => proceed());
+		const Home = sinon.fake(() => h('div', null, h('a', { href: '/about' }, 'Go')));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		expect(scratch).to.have.property('textContent', 'Go');
+		beforeChange.resetHistory();
+
+		scratch.querySelector('a[href="/about"]').click();
+		await sleep(1);
+
+		expect(beforeChange).to.have.been.calledOnce;
+		expect(beforeChange.firstCall.args[0]).to.equal('/about');
+		expect(scratch).to.have.property('textContent', 'About');
+	});
+
+	it('should fire before onRouteChange', async () => {
+		const callOrder = [];
+		const beforeChange = sinon.fake((url, proceed) => {
+			callOrder.push('before');
+			proceed();
+		});
+		const routeChange = sinon.fake(() => {
+			callOrder.push('after');
+		});
+		const Home = sinon.fake(() => h('h1', null, 'Home'));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange, onRouteChange: routeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		beforeChange.resetHistory();
+		routeChange.resetHistory();
+
+		loc.route('/about');
+		await sleep(1);
+
+		expect(beforeChange).to.have.been.calledOnce;
+		expect(routeChange).to.have.been.calledOnce;
+		expect(callOrder).to.eql(['before', 'after']);
+	});
+
+	it('should cancel navigation when proceed() is never called', async () => {
+		const beforeChange = sinon.fake(() => { /* intentionally not calling proceed */ });
+		const Home = sinon.fake(() => h('h1', null, 'Home'));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		expect(scratch).to.have.property('textContent', 'Home');
+		beforeChange.resetHistory();
+		Home.resetHistory();
+
+		loc.route('/about');
+		await sleep(10);
+
+		expect(beforeChange).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'Home');
+		expect(loc).to.deep.include({ path: '/' });
+		expect(About).not.to.have.been.called;
+	});
+
+	it('should only navigate once when proceed() is called multiple times', async () => {
+		const pushState = sinon.spy(history, 'pushState');
+		let savedProceed;
+		const beforeChange = sinon.fake((url, proceed) => {
+			savedProceed = proceed;
+		});
+		const Home = sinon.fake(() => h('h1', null, 'Home'));
+		const About = sinon.fake(() => h('h1', null, 'About'));
+
+		render(
+			h(LocationProvider, null,
+				h(Router, { onBeforeRouteChange: beforeChange },
+					h(Home, { path: '/' }),
+					h(About, { path: '/about' })
+				),
+				h(ShallowLocation)
+			),
+			scratch
+		);
+
+		beforeChange.resetHistory();
+
+		loc.route('/about');
+		await sleep(1);
+
+		pushState.resetHistory();
+		savedProceed();
+		savedProceed();
+		savedProceed();
+		await sleep(1);
+
+		expect(pushState).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'About');
+
+		pushState.restore();
+	});
+});
+
 const MODE_HYDRATE = 1 << 5;
 const MODE_SUSPENDED = 1 << 7;
 
