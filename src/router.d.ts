@@ -32,6 +32,7 @@ type MatchProps = KnownProps & ArbitraryProps;
 export function exec(url: string, route: string, matches?: MatchProps): MatchProps
 
 export function Router(props: {
+	viewTransition?: boolean;
 	onRouteChange?: (url: string) => void;
 	onLoadEnd?: (url: string) => void;
 	onLoadStart?: (url: string) => void;

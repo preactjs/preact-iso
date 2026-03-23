@@ -1,5 +1,5 @@
 import { h, createContext, cloneElement, toChildArray } from 'preact';
-import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
+import { useContext, useCallback, useMemo, useReducer, useLayoutEffect, useRef } from 'preact/hooks';
 
 /**
  * @template T
@@ -11,6 +11,8 @@ import { useContext, useMemo, useReducer, useLayoutEffect, useRef } from 'preact
 let push;
 /** @type {string | RegExp | undefined} */
 let scope;
+/** @type {boolean | undefined} */
+let viewTransition;
 
 /**
  * @param {string} href
@@ -24,44 +26,43 @@ function isInScope(href) {
 }
 
 /**
- * @param {string} state
- * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
+ * Resolve a click event into a navigation URL, or return null if the click should be ignored.
+ * Calls preventDefault() synchronously for intercepted clicks.
+ * @param {MouseEvent} event
+ * @returns {{ url: string } | null}
  */
-function handleNav(state, action) {
-	let url = '';
-	push = undefined;
-	if (action && action.type === 'click') {
-		// ignore events the browser takes care of already:
-		if (action.ctrlKey || action.metaKey || action.altKey || action.shiftKey || action.button !== 0) {
-			return state;
-		}
-
-		const link = action.composedPath().find(el => el.nodeName == 'A' && el.href),
-			href = link && link.getAttribute('href');
-		if (
-			!link ||
-			link.origin != location.origin ||
-			/^#/.test(href) ||
-			!/^(_?self)?$/i.test(link.target) ||
-			!isInScope(href) ||
-			link.download
-		) {
-			return state;
-		}
-
-		push = true;
-		action.preventDefault();
-		url = link.href.replace(location.origin, '');
-	} else if (action && action.url) {
-		push = !action.replace;
-		url = action.url;
-	} else {
-		url = location.pathname + location.search;
+function resolveClickNav(event) {
+	// ignore events the browser takes care of already:
+	if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.button !== 0) {
+		return null;
 	}
 
-	if (push === true) history.pushState(null, '', url);
-	else if (push === false) history.replaceState(null, '', url);
-	return url;
+	const link = event.composedPath().find(el => el.nodeName == 'A' && el.href),
+		href = link && link.getAttribute('href');
+	if (
+		!link ||
+		link.origin != location.origin ||
+		/^#/.test(href) ||
+		!/^(_?self)?$/i.test(link.target) ||
+		!isInScope(href) ||
+		link.download
+	) {
+		return null;
+	}
+
+	event.preventDefault();
+	return { url: link.href.replace(location.origin, '') };
+}
+
+/**
+ * @param {string} state
+ * @param {{ url: string, _push?: boolean }} action
+ */
+function handleNav(state, action) {
+	push = action._push;
+	if (push === true) history.pushState(null, '', action.url);
+	else if (push === false) history.replaceState(null, '', action.url);
+	return action.url;
 };
 
 export const exec = (url, route, matches = {}) => {
@@ -99,9 +100,44 @@ export const exec = (url, route, matches = {}) => {
  */
 export function LocationProvider(props) {
 	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
-	if (props.scope) scope = props.scope;
+	const [url, update] = useReducer(handleNav, props.url || location.pathname + location.search);
+	scope = props.scope;
 	const wasPush = push === true;
+
+	const route = useCallback(
+		/**
+		 * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
+		 */
+		(action) => {
+			/** @type {string} */
+			let url;
+			/** @type {boolean | undefined} */
+			let shouldPush;
+
+			if (action && action.type === 'click') {
+				const nav = resolveClickNav(/** @type {MouseEvent} */ (action));
+				if (!nav) return;
+				url = nav.url;
+				shouldPush = true;
+			} else if (action && action.url) {
+				url = action.url;
+				shouldPush = !action.replace;
+			} else {
+				// popstate
+				url = location.pathname + location.search;
+				shouldPush = undefined;
+			}
+
+			const commit = () => update({ url, _push: shouldPush });
+
+			if (viewTransition && document.startViewTransition) {
+				document.startViewTransition(() => commit());
+			} else {
+				commit();
+			}
+		},
+		[]
+	);
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
@@ -134,6 +170,7 @@ const RESOLVED = Promise.resolve();
 /** @this {import('./internal.d.ts').AugmentedComponent} */
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
+	viewTransition = props.viewTransition;
 
 	const { url, query, wasPush, path } = useLocation();
 	if (!url) {

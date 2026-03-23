@@ -1060,6 +1060,138 @@ describe('Router', () => {
 	});
 });
 
+describe('viewTransition', () => {
+	let scratch, loc;
+
+	const ShallowLocation = () => {
+		loc = useLocation();
+		return null;
+	};
+
+	beforeEach(() => {
+		if (scratch) {
+			render(null, scratch);
+			scratch.remove();
+		}
+		// Clean up any leftover scratch elements from other test suites
+		let existing;
+		while ((existing = document.querySelector('scratch'))) {
+			render(null, existing);
+			existing.remove();
+		}
+		loc = undefined;
+		scratch = document.createElement('scratch');
+		document.body.appendChild(scratch);
+		history.replaceState(null, null, '/');
+	});
+
+	it('should not call startViewTransition when viewTransition is not set', async () => {
+		const startViewTransition = sinon.stub(document, 'startViewTransition').callsFake(cb => cb());
+		const Home = sinon.fake(() => <h1>Home</h1>);
+		const About = sinon.fake(() => <h1>About</h1>);
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Home path="/" />
+					<About path="/about" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		startViewTransition.resetHistory();
+		loc.route('/about');
+		await sleep(1);
+
+		expect(startViewTransition).not.to.have.been.called;
+		expect(scratch).to.have.property('textContent', 'About');
+
+		startViewTransition.restore();
+	});
+
+	it('should wrap navigation in startViewTransition when enabled', async () => {
+		const startViewTransition = sinon.stub(document, 'startViewTransition').callsFake(cb => cb());
+		const Home = sinon.fake(() => <h1>Home</h1>);
+		const About = sinon.fake(() => <h1>About</h1>);
+
+		render(
+			<LocationProvider>
+				<Router viewTransition>
+					<Home path="/" />
+					<About path="/about" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		startViewTransition.resetHistory();
+		loc.route('/about');
+		await sleep(1);
+
+		expect(startViewTransition).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'About');
+		expect(loc).to.deep.include({ url: '/about', path: '/about' });
+
+		startViewTransition.restore();
+	});
+
+	it('should wrap <a> tag click navigation in startViewTransition', async () => {
+		const startViewTransition = sinon.stub(document, 'startViewTransition').callsFake(cb => cb());
+		const Home = sinon.fake(() => <div><a href="/about">Go</a></div>);
+		const About = sinon.fake(() => <h1>About</h1>);
+
+		render(
+			<LocationProvider>
+				<Router viewTransition>
+					<Home path="/" />
+					<About path="/about" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		startViewTransition.resetHistory();
+		scratch.querySelector('a[href="/about"]').click();
+		await sleep(1);
+
+		expect(startViewTransition).to.have.been.calledOnce;
+		expect(scratch).to.have.property('textContent', 'About');
+
+		startViewTransition.restore();
+	});
+
+	it('should fall back to normal navigation when startViewTransition is not supported', async () => {
+		const original = document.startViewTransition;
+		document.startViewTransition = undefined;
+
+		const Home = sinon.fake(() => <h1>Home</h1>);
+		const About = sinon.fake(() => <h1>About</h1>);
+
+		render(
+			<LocationProvider>
+				<Router viewTransition>
+					<Home path="/" />
+					<About path="/about" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		loc.route('/about');
+		await sleep(1);
+
+		expect(scratch).to.have.property('textContent', 'About');
+		expect(loc).to.deep.include({ url: '/about', path: '/about' });
+
+		document.startViewTransition = original;
+	});
+});
+
 const MODE_HYDRATE = 1 << 5;
 const MODE_SUSPENDED = 1 << 7;
 
