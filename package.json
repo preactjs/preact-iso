@@ -8,6 +8,7 @@
 	"exports": {
 		".": "./src/index.js",
 		"./router": "./src/router.js",
+		"./router/navigation-api": "./src/router-navigation-api.js",
 		"./lazy": "./src/lazy.js",
 		"./prerender": "./src/prerender.js",
 		"./hydrate": "./src/hydrate.js"

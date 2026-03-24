@@ -1,3 +1,4 @@
+/// <reference types="navigation-api-types" />
 import { Component } from 'preact';
 
 export interface AugmentedComponent extends Component<any, any> {
