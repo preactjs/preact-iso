@@ -41,7 +41,6 @@ describe('Router', () => {
 		history.replaceState(null, null, '/');
 	});
 
-
 	it('should throw a clear error if the LocationProvider is missing', () => {
 		const Home = () => <h1>Home</h1>;
 
@@ -611,16 +610,14 @@ describe('Router', () => {
 			});
 		}
 
-		// TODO: These tests are rather flakey, for some reason the additional handler
-		// occasionally isn't running prior browser actually navigates away.
+		// TODO: Need a better way to test these. We're currently racing the browser and trying to observe
+		// the navigation event after is has been ignored by the router, but before any navigation occurs,
+		// which has been incredibly flakey. Not to mention, wtr runs in an iframe so `_top` and `_parent`
+		// wouldn't act as expected either (cheers to @sbesh91 for that).
+		//
+		// For now, we can skip, though it'd be good to get a better option in place.
 		for (const target of shouldNavigate) {
-			it(`should allow default browser navigation for links with ${getName(target)}`, async () => {
-				// Currently cross-window navigations, (e.g., `target="_blank"`), do not trigger a
-				// `navigate` event, which makes this difficult to observe. Per the spec, however, this
-				// might be a bug in Chrome's implementation:
-				// https://github.com/WICG/navigation-api?tab=readme-ov-file#restrictions-on-firing-canceling-and-responding
-				if (target === '_blank' || target === '_BLANK' || target === 'custom') return;
-
+			it.skip(`should allow default browser navigation for links with ${getName(target)}`, async () => {
 				scratch.querySelector(`#${createId(target)}`).click();
 				await sleep(1);
 				expect(triedToNavigate).to.be.true;
@@ -989,12 +986,12 @@ describe('Router', () => {
 
 		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
 
-		navigation.back();
+		await navigation.back().finished;
 		await sleep(10);
 
 		expect(loc).to.deep.include({ url: '/', path: '/', searchParams: {} });
 
-		navigation.forward();
+		await navigation.forward().finished;
 		await sleep(10);
 
 		expect(loc).to.deep.include({ url: '/foo', path: '/foo', searchParams: {} });
