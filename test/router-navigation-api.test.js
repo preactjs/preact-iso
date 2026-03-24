@@ -4,7 +4,7 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
 
-import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router-navigation.js';
+import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router-navigation-api.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
 
 import './setup.js';
