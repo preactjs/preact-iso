@@ -12,6 +12,7 @@
 		"./prerender": "./src/prerender.js",
 		"./hydrate": "./src/hydrate.js"
 	},
+	"sideEffects": false,
 	"license": "MIT",
 	"description": "Isomorphic utilities for Preact",
 	"author": "The Preact Authors (https://preactjs.com)",
