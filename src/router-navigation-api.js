@@ -38,8 +38,6 @@ function isInScope(url) {
  * @param {NavigateEvent} e
  */
 function handleNav(state, e) {
-	// TODO: Double-check this can't fail to parse.
-	// `.destination` is read-only, so I'm hoping it guarantees a valid URL.
 	const url = new URL(e.destination.url);
 
 	if (
@@ -93,14 +91,12 @@ export const exec = (url, route, matches = {}) => {
  * @param {import('preact').ComponentChildren} [props.children]
  */
 export function LocationProvider(props) {
-	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
+	const [url, route] = useReducer(handleNav, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
 		const path = u.pathname.replace(/\/+$/g, '') || '/';
-		// @ts-ignore-next
 		return {
 			url,
 			path,
@@ -116,7 +112,6 @@ export function LocationProvider(props) {
 		};
 	}, []);
 
-	// @ts-ignore
 	return h(LocationProvider.ctx.Provider, { value }, props.children);
 }
 
@@ -259,9 +254,6 @@ export function Router(props) {
 
 		// The route is loaded and rendered.
 		if (prevRoute.current !== path) {
-			// TODO: Definitely need to think about this, for now, just removing `wasPush` as it
-			// doesn't make sense in context of the Navigation API.
-			scrollTo(0, 0);
 			if (props.onRouteChange) props.onRouteChange(url);
 
 			prevRoute.current = path;
@@ -286,10 +278,10 @@ const RenderRef = ({ r }) => r.current;
 Router.Provider = LocationProvider;
 
 LocationProvider.ctx = createContext(
-	/** @type {import('./router.d.ts').LocationHook} */ ({})
+	/** @type {import('./router-navigation-api.d.ts').LocationHook} */ ({})
 );
 const RouteContext = createContext(
-	/** @type {import('./router.d.ts').RouteHook & { rest: string }} */ ({})
+	/** @type {import('./router-navigation-api.d.ts').RouteHook & { rest: string }} */ ({})
 );
 
 export const Route = props => h(props.component, props);

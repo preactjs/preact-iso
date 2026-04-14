@@ -60,11 +60,14 @@ describe('Router', () => {
 
 	it('should strip trailing slashes from path', async () => {
 		render(
-			<LocationProvider url="/a/">
+			<LocationProvider>
 				<ShallowLocation />
 			</LocationProvider>,
 			scratch
 		);
+
+		navigation.navigate('/a/');
+		await sleep(1);
 
 		expect(loc).to.deep.include({
 			url: '/a/',
@@ -733,53 +736,6 @@ describe('Router', () => {
 				clickHandler.resetHistory();
 			}
 		});
-	});
-
-	it('should scroll to top when navigating forward', async () => {
-		const scrollTo = sinon.spy(window, 'scrollTo');
-
-		const Route = sinon.fake(
-			() => (
-				<div style={{ height: '1000px' }}>
-					<a href="/link">link</a>
-				</div>
-			)
-		);
-
-		render(
-			<LocationProvider>
-				<Router>
-					<Route default />
-				</Router>
-				<ShallowLocation />
-			</LocationProvider>,
-			scratch
-		);
-
-		expect(scrollTo).not.to.have.been.called;
-		expect(Route).to.have.been.calledOnce;
-		Route.resetHistory();
-
-		navigation.navigate('/programmatic');
-		await sleep(1);
-
-		expect(loc).to.deep.include({ url: '/programmatic' });
-		expect(scrollTo).to.have.been.calledWith(0, 0);
-		expect(scrollTo).to.have.been.calledOnce;
-		expect(Route).to.have.been.calledOnce;
-		Route.resetHistory();
-		scrollTo.resetHistory();
-
-		scratch.querySelector('a').click();
-		await sleep(1);
-
-		expect(loc).to.deep.include({ url: '/link' });
-		expect(scrollTo).to.have.been.calledWith(0, 0);
-		expect(scrollTo).to.have.been.calledOnce;
-		expect(Route).to.have.been.calledOnce;
-		Route.resetHistory();
-
-		scrollTo.restore();
 	});
 
 	it('should ignore clicks on document fragment links', async () => {
