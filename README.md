@@ -26,6 +26,8 @@ Isomorphic async tools for Preact.
     - [hydrate()](#hydrate)
     - [prerender()](#prerender)
     - [locationStub()](#locationstub)
+  - [Navigation API Entry Docs](#navigation-api-entry-docs)
+    - [Differences in usage](#differences-in-usage)
 
 ---
 
@@ -437,6 +439,18 @@ locationStub('/foo/bar?baz=qux#quux');
 
 console.log(location.pathname); // "/foo/bar"
 ```
+
+## Navigation API Entry Docs
+
+The Navigation API is a new web standard that provides an updated method of handling "navigation" in web applications, supporting SPA-style routing as a first-class citizen. The older History API can be wrangled to support this and has been the standard for many years, but the Navigation API provides a much more robust set of tools that are really, really attractive for routers like `preact-iso` to take advantage of.
+
+Whilst the API [sees fairly wide support](https://caniuse.com/wf-navigation), it is still newly available and thus may not be viable for some targets. As such, we've provided a new entry point that will allow you to take advantage of this API if you wish, but the default remains targetting the History API. The Navigation API entry point is available at `preact-iso/router/navigation-api`.
+
+### Differences in usage
+
+The differences lie entirely within the [`useLocation()`](#uselocation) hook: instead of returning a `route()` function, you use the global `navigation` object to perform all navigations.
+
+The [`navigation` object](https://developer.mozilla.org/en-US/docs/Web/API/Navigation) contains many of the useful utilities that go along with a router, like `.forward()`, `.back()`, `.canGoForward()`, `.canGoBack()`, `.entries()`, etc. It actually offers far more utilities than the base router did, and does so with less library code overall, so if you have access to it, it's a really nice upgrade.
 
 ## License
 
