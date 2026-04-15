@@ -109,7 +109,6 @@ export function LocationProvider(props) {
 		return {
 			url,
 			path,
-			pathParams: {},
 			searchParams: Object.fromEntries(u.searchParams),
 			route: (url, replace) => route({ url, replace }),
 			wasPush
@@ -134,11 +133,11 @@ const RESOLVED = Promise.resolve();
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
-	const { url, path, pathParams, searchParams, wasPush } = useLocation();
+	const { url, searchParams, wasPush, path } = useLocation();
 	if (!url) {
 		throw new Error(`preact-iso's <Router> must be used within a <LocationProvider>, see: https://github.com/preactjs/preact-iso#locationprovider`);
 	}
-	const { rest = path } = useContext(RouterContext);
+	const { rest = path, pathParams = {} } = useContext(RouteContext);
 
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
@@ -164,8 +163,9 @@ export function Router(props) {
 			(matchProps = {
 				...vnode.props,
 				path: rest,
-				pathParams : Object.assign({}, pathParams),
 				searchParams,
+				pathParams : Object.assign({}, pathParams),
+				rest: ''
 			}));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
@@ -179,7 +179,7 @@ export function Router(props) {
 	const routeChanged = useMemo(() => {
 		prev.current = cur.current;
 
-		cur.current = /** @type {VNode<any>} */ (h(RouterContext.Provider, { value: matchProps }, incoming));
+		cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
 
 		// Only mark as an update if the route component changed.
 		const outgoing = prev.current && prev.current.props.children;
@@ -293,10 +293,11 @@ Router.Provider = LocationProvider;
 LocationProvider.ctx = createContext(
 	/** @type {import('./router.d.ts').LocationHook & { wasPush: boolean }} */ ({})
 );
-const RouterContext = createContext(
-	/** @type {{ rest: string }} */ ({})
+const RouteContext = createContext(
+	/** @type {import('./router.d.ts').RouteHook & { rest: string }} */ ({})
 );
 
 export const Route = props => h(props.component, props);
 
 export const useLocation = () => useContext(LocationProvider.ctx);
+export const useRoute = () => useContext(RouteContext);

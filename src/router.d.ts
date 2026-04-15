@@ -41,11 +41,17 @@ export function Router(props: {
 interface LocationHook {
 	url: string;
 	path: string;
-	pathParams: Record<string, string>;
 	searchParams: Record<string, string>;
 	route: (url: string, replace?: boolean) => void;
 }
 export const useLocation: () => LocationHook;
+
+interface RouteHook {
+	path: string;
+	searchParams: Record<string, string>;
+	pathParams: Record<string, string>;
+}
+export const useRoute: () => RouteHook;
 
 type RoutableProps =
 	| { path: string; default?: false; }
