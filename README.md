@@ -292,6 +292,8 @@ Returns an object with the following properties:
   - `path: string` - The current path
   - `query: Record<string, string>` - The current query string parameters (`/profile?name=John` -> `{ name: 'John' }`)
   - `route: (url: string, replace?: boolean) => void` - A function to programmatically navigate to a new route. The `replace` param can optionally be used to overwrite history, navigating them away without keeping the current location in the history stack.
+  - `back: () => void` - A function to programmatically navigate back one entry in the browser history stack.
+  - `forward: () => void` - A function to programmatically navigate forward one entry in the browser history stack.
 
 ### `useRoute`
 

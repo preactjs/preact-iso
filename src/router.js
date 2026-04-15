@@ -61,6 +61,7 @@ function handleNav(state, action) {
 
 	if (push === true) history.pushState(null, '', url);
 	else if (push === false) history.replaceState(null, '', url);
+
 	return url;
 };
 
@@ -112,6 +113,12 @@ export function LocationProvider(props) {
 			path,
 			query: Object.fromEntries(u.searchParams),
 			route: (url, replace) => route({ url, replace }),
+			back: () => {
+				history.back();
+			},
+			forward: () => {
+				history.forward();
+			},
 			wasPush
 		};
 	}, [url]);
