@@ -927,6 +927,35 @@ describe('Router', () => {
 		expect(params).to.deep.include({ id: 'bar' });
 	});
 
+	it('should not double-decode percent-encoded characters in nested routes', async () => {
+		let route;
+		const Inner = () => (
+			<Router>
+				<Route
+					path="/child/:id"
+					component={() => {
+						route = useRoute();
+						return null;
+					}}
+				/>
+			</Router>
+		);
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Route path="/nested/*" component={Inner} />
+				</Router>
+				<a href="/nested/child/%25"></a>
+			</LocationProvider>,
+			scratch
+		);
+
+		scratch.querySelector('a[href="/nested/child/%25"]').click();
+		await sleep(1);
+		expect(route).to.deep.include({ params: { id: '%' } });
+	});
+
 	it('should replace the current URL', async () => {
 		const pushState = sinon.spy(history, 'pushState');
 		const replaceState = sinon.spy(history, 'replaceState');

@@ -116,6 +116,11 @@ test('Handles leading/trailing slashes', () => {
 	});
 });
 
+test('Percent-encoded characters in rest are not decoded', () => {
+	const result = execPath('/nested/child/%25', '/nested/*');
+	assert.equal(result, { path: '/nested/child/%25', params: {}, query: {}, rest: '/child/%25' });
+});
+
 test('should not overwrite existing properties', () => {
 	const result = execPath('/foo/bar', '/:path/:query', { path: '/custom-path' });
 	assert.equal(result, {
