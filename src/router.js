@@ -76,7 +76,7 @@ export const exec = (url, route, matches = {}) => {
 		if (!m && param == val) continue;
 		// /foo/* match
 		if (!m && val && flag == '*') {
-			matches.rest = '/' + url.slice(i).map(decodeURIComponent).join('/');
+			matches.rest = '/' + url.slice(i).join('/');
 			break;
 		}
 		// segment mismatch / missing required field:
