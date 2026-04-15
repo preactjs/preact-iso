@@ -116,6 +116,9 @@ export function LocationProvider(props) {
 			back: () => {
 				history.back();
 			},
+			forward: () => {
+				history.forward();
+			},
 			wasPush
 		};
 	}, [url]);
