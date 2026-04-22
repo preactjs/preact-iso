@@ -41,7 +41,7 @@ export function Router(props: {
 interface LocationHook {
 	url: string;
 	path: string;
-	query: Record<string, string>;
+	searchParams: Record<string, string>;
 	route: (url: string, replace?: boolean) => void;
 	back: () => void;
 	forward: () => void;
@@ -50,8 +50,8 @@ export const useLocation: () => LocationHook;
 
 interface RouteHook {
 	path: string;
-	query: Record<string, string>;
-	params: Record<string, string>;
+	searchParams: Record<string, string>;
+	pathParams: Record<string, string>;
 }
 export const useRoute: () => RouteHook;
 

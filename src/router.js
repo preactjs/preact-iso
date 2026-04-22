@@ -68,12 +68,12 @@ function handleNav(state, action) {
 export const exec = (url, route, matches = {}) => {
 	url = url.split('/').filter(Boolean);
 	route = (route || '').split('/').filter(Boolean);
-	if (!matches.params) matches.params = {};
+	if (!matches.pathParams) matches.pathParams = {};
 	for (let i = 0, val, rest; i < Math.max(url.length, route.length); i++) {
-		let [, m, param, flag] = (route[i] || '').match(/^(:?)(.*?)([+*?]?)$/);
+		let [, m, pathParam, flag] = (route[i] || '').match(/^(:?)(.*?)([+*?]?)$/);
 		val = url[i];
 		// segment match:
-		if (!m && param == val) continue;
+		if (!m && pathParam == val) continue;
 		// /foo/* match
 		if (!m && val && flag == '*') {
 			matches.rest = '/' + url.slice(i).join('/');
@@ -86,8 +86,8 @@ export const exec = (url, route, matches = {}) => {
 		if (rest) val = url.slice(i).map(decodeURIComponent).join('/') || undefined;
 		// normal/optional field:
 		else if (val) val = decodeURIComponent(val);
-		matches.params[param] = val;
-		if (!(param in matches)) matches[param] = val;
+		matches.pathParams[pathParam] = val;
+		if (!(pathParam in matches)) matches[pathParam] = val;
 		if (rest) break;
 	}
 	return matches;
@@ -99,19 +99,18 @@ export const exec = (url, route, matches = {}) => {
  * @param {import('preact').ComponentChildren} [props.children]
  */
 export function LocationProvider(props) {
-	// @ts-expect-error - props.url is not implemented correctly & will be removed in the future
-	const [url, route] = useReducer(handleNav, props.url || location.pathname + location.search);
+	const [url, route] = useReducer(handleNav, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
 		const path = u.pathname.replace(/\/+$/g, '') || '/';
-		// @ts-ignore-next
+
 		return {
 			url,
 			path,
-			query: Object.fromEntries(u.searchParams),
+			searchParams: Object.fromEntries(u.searchParams),
 			route: (url, replace) => route({ url, replace }),
 			back: () => {
 				history.back();
@@ -133,7 +132,6 @@ export function LocationProvider(props) {
 		};
 	}, []);
 
-	// @ts-ignore
 	return h(LocationProvider.ctx.Provider, { value }, props.children);
 }
 
@@ -142,11 +140,11 @@ const RESOLVED = Promise.resolve();
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
 
-	const { url, query, wasPush, path } = useLocation();
+	const { url, searchParams, wasPush, path } = useLocation();
 	if (!url) {
 		throw new Error(`preact-iso's <Router> must be used within a <LocationProvider>, see: https://github.com/preactjs/preact-iso#locationprovider`);
 	}
-	const { rest = path, params = {} } = useContext(RouteContext);
+	const { rest = path, pathParams = {} } = useContext(RouteContext);
 
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
@@ -172,11 +170,10 @@ export function Router(props) {
 			(matchProps = {
 				...vnode.props,
 				path: rest,
-				query,
-				params: Object.assign({}, params),
+				searchParams,
+				pathParams : Object.assign({}, pathParams),
 				rest: ''
-			})
-		);
+			}));
 		if (matches) return (pathRoute = cloneElement(vnode, matchProps));
 		if (vnode.props.default) defaultRoute = cloneElement(vnode, matchProps);
 	});
