@@ -75,7 +75,7 @@ export const exec = (url, route, matches = {}) => {
 		if (!m || (!val && flag != '?' && flag != '*')) return;
 		rest = flag == '+' || flag == '*';
 		// rest (+/*) match:
-		if (rest) val = url.slice(i).map(decodeURIComponent).join('/') || undefined;
+		if (rest) val = url.slice(i).join('/') || undefined;
 		// normal/optional field:
 		else if (val) val = decodeURIComponent(val);
 		matches.params[param] = val;
