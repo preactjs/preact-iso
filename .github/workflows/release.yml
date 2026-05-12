@@ -5,11 +5,14 @@ on:
     branches:
       - main
 
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   release:
     name: Release
     outputs:
       has_changesets: ${{ steps.changesets.outputs.hasChangesets }}
+      should_publish: ${{ steps.publish-check.outputs.should_publish }}
     permissions:
       contents: write
       issues: read
@@ -18,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -28,23 +33,40 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Update npm
-        run: npm install -g npm@11.11
+        run: npm install -g npm@11.11.1
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Create Release Pull Request
         id: changesets
-        uses: changesets/action@v1.5.3
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         with:
           version: npm run version
+          commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check whether this version still needs publishing
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        id: publish-check
+        shell: bash
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+
+          echo "Checking whether ${PACKAGE_NAME}@${PACKAGE_VERSION} is already on npm"
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish
     needs: release
-    if: needs.release.outputs.has_changesets == 'false'
+    if: needs.release.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -52,11 +74,11 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      issues: read
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -67,14 +89,15 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Update npm
-        run: npm install -g npm@11.11
+        run: npm install -g npm@11.11.1
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Publish packages
-        uses: changesets/action@v1.5.3
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         with:
-          publish: npx changeset publish
+          publish: npm exec -- changeset publish
+          commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
