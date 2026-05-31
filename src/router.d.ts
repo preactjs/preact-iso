@@ -1,7 +1,21 @@
 import { AnyComponent, ComponentChildren, Context, VNode } from 'preact';
 
 export const LocationProvider: {
-	(props: { scope?: string | RegExp; children?: ComponentChildren; }): VNode;
+	(props: {
+		scope?: string | RegExp;
+		/**
+		 * Wrap the commit of a navigation (the history update plus the state
+		 * change that drives the route re-render). Receives a `commit` callback;
+		 * call it to perform the navigation. Run it inside e.g.
+		 * `document.startViewTransition` so the browser captures the current route
+		 * as the transition's old snapshot before the new route swaps in:
+		 * `wrapNavigation={commit => document.startViewTransition(() => flushSync(commit))}`.
+		 * For navigations to async/suspending routes, pair with the Router's
+		 * `wrapUpdate` to resolve the transition once the content commits.
+		 */
+		wrapNavigation?: (commit: () => void) => void;
+		children?: ComponentChildren;
+	}): VNode;
 	ctx: Context<LocationHook>;
 };
 

@@ -24,16 +24,18 @@ function isInScope(href) {
 }
 
 /**
- * @param {string} state
+ * Resolve a navigation action to its target, or `null` if the action is not an
+ * in-scope navigation. Performs only the synchronous part of handling a link
+ * click (preventDefault); the history + state commit is left to the caller so
+ * it can be deferred / wrapped (e.g. in document.startViewTransition).
  * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
+ * @returns {{ url: string, push: boolean | undefined } | null}
  */
-function handleNav(state, action) {
-	let url = '';
-	push = undefined;
+function resolveNav(action) {
 	if (action && action.type === 'click') {
 		// ignore events the browser takes care of already:
 		if (action.ctrlKey || action.metaKey || action.altKey || action.shiftKey || action.button !== 0) {
-			return state;
+			return null;
 		}
 
 		const link = action.composedPath().find(el => el.nodeName == 'A' && el.href),
@@ -46,23 +48,18 @@ function handleNav(state, action) {
 			!isInScope(href) ||
 			link.download
 		) {
-			return state;
+			return null;
 		}
 
-		push = true;
 		action.preventDefault();
-		url = link.href.replace(location.origin, '');
+		return { url: link.href.replace(location.origin, ''), push: true };
 	} else if (action && action.url) {
-		push = !action.replace;
-		url = action.url;
-	} else {
-		url = location.pathname + location.search;
+		return { url: action.url, push: !action.replace };
 	}
 
-	if (push === true) history.pushState(null, '', url);
-	else if (push === false) history.replaceState(null, '', url);
-	return url;
-};
+	// popstate (or any other trigger): the browser already updated history.
+	return { url: location.pathname + location.search, push: undefined };
+}
 
 export const exec = (url, route, matches = {}) => {
 	url = url.split('/').filter(Boolean);
@@ -95,12 +92,34 @@ export const exec = (url, route, matches = {}) => {
 /**
  * @param {Object} props
  * @param {string | RegExp} [props.scope]
+ * @param {(commit: () => void) => void} [props.wrapNavigation]
  * @param {import('preact').ComponentChildren} [props.children]
  */
 export function LocationProvider(props) {
-	const [url, route] = useReducer(handleNav, location.pathname + location.search);
+	const [url, setUrl] = useReducer((_, next) => next, location.pathname + location.search);
 	if (props.scope) scope = props.scope;
 	const wasPush = push === true;
+
+	// Resolve + commit a navigation. The commit (history update + the state
+	// change that drives the route re-render) is handed to `wrapNavigation` when
+	// provided, so a consumer can run it inside e.g. document.startViewTransition
+	// — letting the browser capture the still-mounted old route as the
+	// transition's old snapshot before it swaps. Without the hook the commit runs
+	// immediately, identical to before. Kept in a ref so the once-registered
+	// listeners always invoke the latest props/closure.
+	const navigate = useRef();
+	navigate.current = (/** @type {any} */ action) => {
+		const next = resolveNav(action);
+		if (!next) return;
+		const commit = () => {
+			push = next.push;
+			if (push === true) history.pushState(null, '', next.url);
+			else if (push === false) history.replaceState(null, '', next.url);
+			setUrl(next.url);
+		};
+		if (props.wrapNavigation) props.wrapNavigation(commit);
+		else commit();
+	};
 
 	const value = useMemo(() => {
 		const u = new URL(url, location.origin);
@@ -110,18 +129,19 @@ export function LocationProvider(props) {
 			url,
 			path,
 			searchParams: Object.fromEntries(u.searchParams),
-			route: (url, replace) => route({ url, replace }),
+			route: (url, replace) => navigate.current({ url, replace }),
 			wasPush
 		};
 	}, [url]);
 
 	useLayoutEffect(() => {
-		addEventListener('click', route);
-		addEventListener('popstate', route);
+		const handler = (/** @type {MouseEvent | PopStateEvent} */ e) => navigate.current(e);
+		addEventListener('click', handler);
+		addEventListener('popstate', handler);
 
 		return () => {
-			removeEventListener('click', route);
-			removeEventListener('popstate', route);
+			removeEventListener('click', handler);
+			removeEventListener('popstate', handler);
 		};
 	}, []);
 

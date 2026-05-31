@@ -599,6 +599,91 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1>');
 	});
 
+	it('should route navigations through wrapNavigation, with the old route still mounted until the commit runs', async () => {
+		const Home = () => <h1>Home</h1>;
+		const B = () => <h1>B</h1>;
+
+		let htmlAtWrap;
+		const wrapNavigation = sinon.fake(commit => {
+			// The old route is still on screen here — this is the window in which a
+			// consumer would start a view transition before swapping.
+			htmlAtWrap = scratch.innerHTML;
+			commit();
+		});
+
+		render(
+			<LocationProvider wrapNavigation={wrapNavigation}>
+				<Router>
+					<Home path="/" />
+					<B path="/b" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		await sleep(1);
+		expect(scratch).to.have.property('innerHTML', '<h1>Home</h1>');
+		// The initial render is not a navigation.
+		expect(wrapNavigation).not.to.have.been.called;
+
+		loc.route('/b');
+		await sleep(1);
+		expect(wrapNavigation).to.have.been.calledOnce;
+		expect(wrapNavigation.lastCall.args[0]).to.be.a('function');
+		expect(htmlAtWrap).to.equal('<h1>Home</h1>');
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1>');
+	});
+
+	it('should route link-click navigations through wrapNavigation (and still preventDefault)', async () => {
+		const Home = () => <a href="/b">go</a>;
+		const B = () => <h1>B</h1>;
+		const wrapNavigation = sinon.fake(commit => commit());
+		const pushState = sinon.spy(history, 'pushState');
+
+		render(
+			<LocationProvider wrapNavigation={wrapNavigation}>
+				<Router>
+					<Home path="/" />
+					<B path="/b" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+		await sleep(1);
+
+		scratch.querySelector('a').click();
+		await sleep(1);
+
+		expect(wrapNavigation).to.have.been.calledOnce;
+		expect(loc).to.deep.include({ url: '/b' });
+		expect(pushState).to.have.been.calledWith(null, '', '/b');
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1>');
+		pushState.restore();
+	});
+
+	it('should navigate normally when wrapNavigation is omitted', async () => {
+		const Home = () => <h1>Home</h1>;
+		const B = () => <h1>B</h1>;
+
+		render(
+			<LocationProvider>
+				<Router>
+					<Home path="/" />
+					<B path="/b" />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+		await sleep(1);
+
+		loc.route('/b');
+		await sleep(1);
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1>');
+	});
+
 	describe('intercepted VS external links', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
