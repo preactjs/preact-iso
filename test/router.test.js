@@ -547,6 +547,58 @@ describe('Router', () => {
 		expect(loadEnd).not.to.have.been.called;
 	});
 
+	it('should route a suspending route\'s commit through wrapUpdate', async () => {
+		const A = sinon.fake(groggy(() => <h1>A</h1>, 1));
+		const B = sinon.fake(groggy(() => <h1>B</h1>, 1));
+		const wrapUpdate = sinon.fake(commit => commit());
+
+		render(
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router wrapUpdate={wrapUpdate}>
+						<A path="/" />
+						<B path="/b" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			</ErrorBoundary>,
+			scratch
+		);
+
+		// Initial async route resolves: the commit is handed to wrapUpdate.
+		await sleep(10);
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1>');
+		expect(wrapUpdate).to.have.been.called;
+		expect(wrapUpdate.lastCall.args[0]).to.be.a('function');
+		wrapUpdate.resetHistory();
+
+		// Navigating to another async route funnels its commit through wrapUpdate
+		// too, and the content swaps in when the commit runs.
+		loc.route('/b');
+		await sleep(10);
+		expect(wrapUpdate).to.have.been.called;
+		expect(wrapUpdate.firstCall.args[0]).to.be.a('function');
+		expect(scratch).to.have.property('innerHTML', '<h1>B</h1>');
+	});
+
+	it('should still commit suspending routes when wrapUpdate is omitted', async () => {
+		const A = sinon.fake(groggy(() => <h1>A</h1>, 1));
+
+		render(
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+					</Router>
+				</LocationProvider>
+			</ErrorBoundary>,
+			scratch
+		);
+
+		await sleep(10);
+		expect(scratch).to.have.property('innerHTML', '<h1>A</h1>');
+	});
+
 	describe('intercepted VS external links', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];

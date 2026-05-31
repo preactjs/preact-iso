@@ -239,7 +239,16 @@ export function Router(props) {
 				}
 			}
 
-			RESOLVED.then(update);
+			// The route's content is ready to swap in. Let consumers wrap this
+			// commit (e.g. in document.startViewTransition) so navigations to
+			// async/suspending routes can be animated. The commit is internal
+			// to the Router, so without this hook there's no way to wrap the
+			// old-route -> new-content swap from the outside. `update` triggers
+			// a re-render; consumers that need it to happen synchronously inside
+			// their wrapper (the typical View Transition case) should flush it
+			// themselves, e.g. `wrapUpdate={commit => startViewTransition(() => flushSync(commit))}`.
+			if (props.wrapUpdate) RESOLVED.then(() => props.wrapUpdate(update));
+			else RESOLVED.then(update);
 		});
 	};
 

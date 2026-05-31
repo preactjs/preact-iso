@@ -35,6 +35,13 @@ export function Router(props: {
 	onRouteChange?: (url: string) => void;
 	onLoadEnd?: (url: string) => void;
 	onLoadStart?: (url: string) => void;
+	/**
+	 * Wrap the commit that swaps in a suspending route's content once it has
+	 * loaded. Receives a `commit` callback that performs the swap; call it to
+	 * apply the route. Useful for animating navigations to async routes, e.g.
+	 * `wrapUpdate={commit => document.startViewTransition(commit)}`.
+	 */
+	wrapUpdate?: (commit: () => void) => void;
 	children?: NestedArray<VNode>;
 }): VNode;
 
