@@ -53,7 +53,7 @@ function handleNav(state, e) {
 		return state;
 	}
 
-	e.intercept();
+	e.intercept({ focusReset: 'manual' });
 	return url.href.replace(url.origin, '');
 }
 

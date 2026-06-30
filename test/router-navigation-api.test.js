@@ -76,6 +76,27 @@ describe('Router', () => {
 		});
 	});
 
+	it('should preserve focus when intercepting navigations', async () => {
+		render(
+			<LocationProvider>
+				<input type="text" />
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		const input = scratch.querySelector('input[type="text"]');
+		input.focus();
+
+		expect(document.activeElement).to.equal(input);
+
+		await navigation.navigate('/focus-reset').finished;
+		await sleep(1);
+
+		expect(loc).to.deep.include({ url: '/focus-reset' });
+		expect(document.activeElement).to.equal(input);
+	});
+
 	it('should support class components using LocationProvider.ctx', () => {
 		class Foo extends Component {
 			static contextType = LocationProvider.ctx;
