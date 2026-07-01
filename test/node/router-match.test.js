@@ -1,7 +1,10 @@
-import { test } from 'uvu';
-import * as assert from 'uvu/assert';
+import { expect, test } from 'vitest';
 
 import { exec } from '../../src/router.js';
+
+const assert = {
+	equal: (actual, expected) => expect(actual).toEqual(expected),
+};
 
 function execPath(path, pattern, opts) {
 	return exec(path, pattern, { path, query: {}, params: {}, ...(opts || {}) });
@@ -129,5 +132,3 @@ test('should not overwrite existing properties', () => {
 		query: {}
 	});
 });
-
-test.run();

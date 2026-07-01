@@ -1,9 +1,13 @@
-import { test } from 'uvu';
-import * as assert from 'uvu/assert';
+import { beforeEach, expect, test } from 'vitest';
 
 import { locationStub } from '../../src/prerender.js';
 
-test.before.each(() => {
+const assert = {
+	equal: (actual, expected) => expect(actual).toEqual(expected),
+	ok: (actual, message) => expect(actual, message).toBeTruthy(),
+};
+
+beforeEach(() => {
 	if (globalThis.location) {
 		delete globalThis.location;
 	}
@@ -34,5 +38,3 @@ test('Support bound methods', () => {
 
 	assert.equal(globalThis.location.toString(), 'http://localhost/foo/bar?baz=qux#quux')
 });
-
-test.run();

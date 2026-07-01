@@ -1,15 +1,10 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { h, render } from 'preact';
-import * as chai from 'chai';
-import * as sinon from 'sinon';
-import sinonChai from 'sinon-chai';
 
 import { LocationProvider, Router } from '../src/router.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
 
 import './setup.js';
-
-const expect = chai.expect;
-chai.use(sinonChai);
 
 describe('lazy', () => {
 	let scratch;
@@ -27,7 +22,7 @@ describe('lazy', () => {
 
 	it('should support preloading lazy imports', async () => {
 		const A = () => <h1>A</h1>;
-		const loadB = sinon.fake(() => Promise.resolve(() => <h1>B</h1>));
+		const loadB = vi.fn(() => Promise.resolve(() => <h1>B</h1>));
 		const B = lazy(loadB);
 
 		render(

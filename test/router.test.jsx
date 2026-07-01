@@ -1,16 +1,11 @@
+import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { h, Fragment, render, Component, hydrate, options } from 'preact';
 import { useState } from 'preact/hooks';
-import * as chai from 'chai';
-import * as sinon from 'sinon';
-import sinonChai from 'sinon-chai';
 
-import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router-navigation-api.js';
+import { LocationProvider, Router, useLocation, Route, useRoute } from '../src/router.js';
 import lazy, { ErrorBoundary } from '../src/lazy.js';
 
 import './setup.js';
-
-const expect = chai.expect;
-chai.use(sinonChai);
 
 /**
  * Usage:
@@ -21,6 +16,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // delayed lazy()
 const groggy = (component, ms) => lazy(() => sleep(ms).then(() => component));
+
+const expectProps = (component, props) => {
+	expect(component.mock.calls.map(([actual]) => actual)).toContainEqual(props);
+};
+
+const click = el => {
+	const preventDefault = e => e.preventDefault();
+	addEventListener('click', preventDefault);
+	try {
+		el.click();
+	} finally {
+		removeEventListener('click', preventDefault);
+	}
+};
 
 describe('Router', () => {
 	let scratch, loc;
@@ -39,6 +48,8 @@ describe('Router', () => {
 		scratch = document.createElement('scratch');
 		document.body.appendChild(scratch);
 		history.replaceState(null, null, '/');
+		render(<LocationProvider scope="/" />, scratch);
+		render(null, scratch);
 	});
 
 
@@ -60,14 +71,11 @@ describe('Router', () => {
 
 	it('should strip trailing slashes from path', async () => {
 		render(
-			<LocationProvider>
+			<LocationProvider url="/a/">
 				<ShallowLocation />
 			</LocationProvider>,
 			scratch
 		);
-
-		navigation.navigate('/a/');
-		await sleep(1);
 
 		expect(loc).to.deep.include({
 			url: '/a/',
@@ -102,7 +110,7 @@ describe('Router', () => {
 	});
 
 	it('should allow passing props to a route', async () => {
-		const Home = sinon.fake(() => <h1>Home</h1>);
+		const Home = vi.fn(() => <h1>Home</h1>);
 
 		render(
 			<LocationProvider>
@@ -115,7 +123,7 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' });
+		expectProps(Home, { path: '/', query: {}, params: {}, rest: '', test: '2' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -124,7 +132,7 @@ describe('Router', () => {
 	});
 
 	it('should allow updating props in a route', async () => {
-		const Home = sinon.fake(() => <h1>Home</h1>);
+		const Home = vi.fn(() => <h1>Home</h1>);
 
 		/** @type {(string) => void} */
 		let set;
@@ -144,7 +152,7 @@ describe('Router', () => {
 		render(<App />, scratch);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '2' });
+		expectProps(Home, { path: '/', query: {}, params: {}, rest: '', test: '2' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -154,7 +162,7 @@ describe('Router', () => {
 		set('3')
 		await sleep(1);
 
-		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '', test: '3' });
+		expectProps(Home, { path: '/', query: {}, params: {}, rest: '', test: '3' });
 		expect(loc).to.deep.include({
 			url: '/',
 			path: '/',
@@ -164,10 +172,10 @@ describe('Router', () => {
 	});
 
 	it('should switch between synchronous routes', async () => {
-		const Home = sinon.fake(() => <h1>Home</h1>);
-		const Profiles = sinon.fake(() => <h1>Profiles</h1>);
-		const Profile = sinon.fake(({ params }) => <h1>Profile: {params.id}</h1>);
-		const Fallback = sinon.fake(() => <h1>Fallback</h1>);
+		const Home = vi.fn(() => <h1>Home</h1>);
+		const Profiles = vi.fn(() => <h1>Profiles</h1>);
+		const Profile = vi.fn(({ params }) => <h1>Profile: {params.id}</h1>);
+		const Fallback = vi.fn(() => <h1>Fallback</h1>);
 		const stack = [];
 
 		render(
@@ -184,7 +192,7 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('textContent', 'Home');
-		expect(Home).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(Home, { path: '/', query: {}, params: {}, rest: '' });
 		expect(Profiles).not.to.have.been.called;
 		expect(Profile).not.to.have.been.called;
 		expect(Fallback).not.to.have.been.called;
@@ -194,13 +202,13 @@ describe('Router', () => {
 			query: {},
 		});
 
-		Home.resetHistory();
-		navigation.navigate('/profiles');
+		Home.mockClear();
+		loc.route('/profiles');
 		await sleep(1);
 
 		expect(scratch).to.have.property('textContent', 'Profiles');
 		expect(Home).not.to.have.been.called;
-		expect(Profiles).to.have.been.calledWith({ path: '/profiles', query: {}, params: {}, rest: '' });
+		expectProps(Profiles, { path: '/profiles', query: {}, params: {}, rest: '' });
 		expect(Profile).not.to.have.been.called;
 		expect(Fallback).not.to.have.been.called;
 
@@ -210,14 +218,14 @@ describe('Router', () => {
 			query: {}
 		});
 
-		Profiles.resetHistory();
-		navigation.navigate('/profiles/bob');
+		Profiles.mockClear();
+		loc.route('/profiles/bob');
 		await sleep(1);
 
 		expect(scratch).to.have.property('textContent', 'Profile: bob');
 		expect(Home).not.to.have.been.called;
 		expect(Profiles).not.to.have.been.called;
-		expect(Profile).to.have.been.calledWith(
+		expectProps(Profile, 
 			{ path: '/profiles/bob', query: {}, params: { id: 'bob' }, id: 'bob', rest: '' },
 		);
 		expect(Fallback).not.to.have.been.called;
@@ -228,15 +236,15 @@ describe('Router', () => {
 			query: {}
 		});
 
-		Profile.resetHistory();
-		navigation.navigate('/other?a=b&c=d');
+		Profile.mockClear();
+		loc.route('/other?a=b&c=d');
 		await sleep(1);
 
 		expect(scratch).to.have.property('textContent', 'Fallback');
 		expect(Home).not.to.have.been.called;
 		expect(Profiles).not.to.have.been.called;
 		expect(Profile).not.to.have.been.called;
-		expect(Fallback).to.have.been.calledWith(
+		expectProps(Fallback, 
 			{ default: true, path: '/other', query: { a: 'b', c: 'd' }, params: {}, rest: '' },
 		);
 
@@ -255,9 +263,9 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
-		const B = sinon.fake(groggy(() => route('B'), 1));
-		const C = sinon.fake(groggy(() => <h1>C</h1>, 1));
+		const A = vi.fn(groggy(() => route('A'), 1));
+		const B = vi.fn(groggy(() => route('B'), 1));
+		const C = vi.fn(groggy(() => <h1>C</h1>, 1));
 
 		render(
 			<ErrorBoundary>
@@ -274,16 +282,16 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('innerHTML', '');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 
-		A.resetHistory();
+		A.mockClear();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 
-		A.resetHistory();
-		navigation.navigate('/b');
+		A.mockClear();
+		loc.route('/b');
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		expect(A).not.to.have.been.called;
@@ -293,67 +301,67 @@ describe('Router', () => {
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		// We should never re-invoke <A /> while loading <B /> (that would be a remount of the old route):
 		expect(A).not.to.have.been.called;
-		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
+		expectProps(B, { path: '/b', query: {}, params: {}, rest: '' });
 
-		B.resetHistory();
+		B.mockClear();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		expect(B).to.have.been.calledOnce;
-		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
+		expectProps(B, { path: '/b', query: {}, params: {}, rest: '' });
 
-		B.resetHistory();
-		navigation.navigate('/c');
-		navigation.navigate('/c?1');
-		navigation.navigate('/c');
+		B.mockClear();
+		loc.route('/c');
+		loc.route('/c?1');
+		loc.route('/c');
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		expect(B).not.to.have.been.called;
 
 		await sleep(1);
 
-		navigation.navigate('/c');
-		navigation.navigate('/c?2');
-		navigation.navigate('/c');
+		loc.route('/c');
+		loc.route('/c?2');
+		loc.route('/c');
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		// We should never re-invoke <B /> while loading <C /> (that would be a remount of the old route):
 		expect(B).not.to.have.been.called;
-		expect(C).to.have.been.calledWith({ path: '/c', query: {}, params: {}, rest: '' });
+		expectProps(C, { path: '/c', query: {}, params: {}, rest: '' });
 
-		C.resetHistory();
+		C.mockClear();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>C</h1>');
 		expect(C).to.have.been.calledOnce;
-		expect(C).to.have.been.calledWith({ path: '/c', query: {}, params: {}, rest: '' });
+		expectProps(C, { path: '/c', query: {}, params: {}, rest: '' });
 
 		// "instant" routing to already-loaded routes
 
-		C.resetHistory();
-		B.resetHistory();
-		navigation.navigate('/b');
+		C.mockClear();
+		B.mockClear();
+		loc.route('/b');
 		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
 		expect(C).not.to.have.been.called;
 		expect(B).to.have.been.calledOnce;
-		expect(B).to.have.been.calledWith({ path: '/b', query: {}, params: {}, rest: '' });
+		expectProps(B, { path: '/b', query: {}, params: {}, rest: '' });
 
-		A.resetHistory();
-		B.resetHistory();
-		navigation.navigate('/');
+		A.mockClear();
+		B.mockClear();
+		loc.route('/');
 		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
 		expect(B).not.to.have.been.called;
 		expect(A).to.have.been.calledOnce;
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 	});
 
 	it('rerenders same-component routes rather than swap', async () => {
-		const A = sinon.fake(() => <h1>a</h1>);
-		const B = sinon.fake(groggy(({ sub }) => <h1>b/{sub}</h1>, 1));
+		const A = vi.fn(() => <h1>a</h1>);
+		const B = vi.fn(groggy(({ sub }) => <h1>b/{sub}</h1>, 1));
 
 		// Counts the wrappers around route components to determine what the Router is returning
 		// Count will be 2 for switching route components, and 2 more if the new route is lazily loaded
@@ -386,21 +394,21 @@ describe('Router', () => {
 		expect(renderRefCount).to.equal(2);
 
 		renderRefCount = 0;
-		navigation.navigate('/b/a');
+		loc.route('/b/a');
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>b/a</h1>');
 		expect(renderRefCount).to.equal(4);
 
 		renderRefCount = 0;
-		navigation.navigate('/b/b');
+		loc.route('/b/b');
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>b/b</h1>');
 		expect(renderRefCount).to.equal(1);
 
 		renderRefCount = 0;
-		navigation.navigate('/');
+		loc.route('/');
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
@@ -416,10 +424,10 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
-		const loadStart = sinon.fake();
-		const loadEnd = sinon.fake();
-		const routeChange = sinon.fake();
+		const A = vi.fn(groggy(() => route('A'), 1));
+		const loadStart = vi.fn();
+		const loadEnd = vi.fn();
+		const routeChange = vi.fn();
 
 		render(
 			<ErrorBoundary>
@@ -437,19 +445,19 @@ describe('Router', () => {
 		);
 
 		expect(scratch).to.have.property('innerHTML', '');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 		expect(loadStart).to.have.been.calledWith('/');
 		expect(loadEnd).not.to.have.been.called;
 		expect(routeChange).not.to.have.been.called;
 
-		A.resetHistory();
-		loadStart.resetHistory();
-		loadEnd.resetHistory();
-		routeChange.resetHistory();
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
 		await sleep(1);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>A</h1><p>hello</p>');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 		expect(loadStart).not.to.have.been.called;
 		expect(loadEnd).to.have.been.calledWith('/');
 		expect(routeChange).not.to.have.been.called;
@@ -462,11 +470,11 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(() => route('A'));
-		const B = sinon.fake(groggy(() => route('B'), 1));
-		const loadStart = sinon.fake();
-		const loadEnd = sinon.fake();
-		const routeChange = sinon.fake();
+		const A = vi.fn(() => route('A'));
+		const B = vi.fn(groggy(() => route('B'), 1));
+		const loadStart = vi.fn();
+		const loadEnd = vi.fn();
+		const routeChange = vi.fn();
 
 		render(
 			<ErrorBoundary>
@@ -485,22 +493,22 @@ describe('Router', () => {
 			scratch
 		);
 
-		A.resetHistory();
-		loadStart.resetHistory();
-		loadEnd.resetHistory();
-		routeChange.resetHistory();
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
 
-		navigation.navigate('/b');
+		loc.route('/b');
 		await sleep(1);
 
 		expect(loadStart).to.have.been.calledWith('/b');
 		expect(loadEnd).not.to.have.been.called;
 		expect(routeChange).not.to.have.been.called;
 
-		A.resetHistory();
-		loadStart.resetHistory();
-		loadEnd.resetHistory();
-		routeChange.resetHistory();
+		A.mockClear();
+		loadStart.mockClear();
+		loadEnd.mockClear();
+		routeChange.mockClear();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<h1>B</h1><p>hello</p>');
@@ -516,8 +524,8 @@ describe('Router', () => {
 				<p>hello</p>
 			</>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
-		const loadEnd = sinon.fake();
+		const A = vi.fn(groggy(() => route('A'), 1));
+		const loadEnd = vi.fn();
 
 		/** @type {(string) => void} */
 		let set;
@@ -539,7 +547,7 @@ describe('Router', () => {
 		await sleep(10);
 
 		expect(loadEnd).to.have.been.calledWith('/');
-		loadEnd.resetHistory();
+		loadEnd.mockClear();
 
 		set('2');
 		await sleep(1);
@@ -547,13 +555,13 @@ describe('Router', () => {
 		expect(loadEnd).not.to.have.been.called;
 	});
 
-	describe.skip('intercepted VS external links', () => {
+	describe('intercepted VS external links', () => {
 		const shouldIntercept = [null, '', '_self', 'self', '_SELF'];
 		const shouldNavigate = ['_top', '_parent', '_blank', 'custom', '_BLANK'];
 
-		const clickHandler = sinon.fake(e => e.preventDefault());
+		const clickHandler = vi.fn(e => e.preventDefault());
 
-		const Route = sinon.fake(
+		const Route = vi.fn(
 			() => <div>
 				{[...shouldIntercept, ...shouldNavigate].map((target, i) => {
 					const url = '/' + i + '/' + target;
@@ -565,13 +573,13 @@ describe('Router', () => {
 
 		let pushState;
 
-		before(() => {
-			pushState = sinon.spy(history, 'pushState');
+		beforeAll(() => {
+			pushState = vi.spyOn(history, 'pushState');
 			addEventListener('click', clickHandler);
 		});
 
-		after(() => {
-			pushState.restore();
+		afterAll(() => {
+			pushState.mockRestore();
 			removeEventListener('click', clickHandler);
 		});
 
@@ -585,9 +593,9 @@ describe('Router', () => {
 				</LocationProvider>,
 				scratch
 			);
-			Route.resetHistory();
-			clickHandler.resetHistory();
-			pushState.resetHistory();
+			Route.mockClear();
+			clickHandler.mockClear();
+			pushState.mockClear();
 		});
 
 		const getName = target => (target == null ? 'no target attribute' : `target="${target}"`);
@@ -599,7 +607,7 @@ describe('Router', () => {
 				const el = scratch.querySelector(sel);
 				if (!el) throw Error(`Unable to find link: ${sel}`);
 				const url = el.getAttribute('href');
-				el.click();
+				click(el);
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
 				expect(Route).to.have.been.calledOnce;
@@ -614,7 +622,7 @@ describe('Router', () => {
 				const sel = target == null ? `a:not([target])` : `a[target="${target}"]`;
 				const el = scratch.querySelector(sel);
 				if (!el) throw Error(`Unable to find link: ${sel}`);
-				el.click();
+				click(el);
 				await sleep(1);
 				expect(Route).not.to.have.been.called;
 				expect(pushState).not.to.have.been.called;
@@ -623,11 +631,11 @@ describe('Router', () => {
 		}
 	});
 
-	describe.skip('intercepted VS external links with `scope`', () => {
+	describe('intercepted VS external links with `scope`', () => {
 		const shouldIntercept = ['/app', '/app/deeper'];
 		const shouldNavigate = ['/site', '/site/deeper'];
 
-		const clickHandler = sinon.fake(e => e.preventDefault());
+		const clickHandler = vi.fn(e => e.preventDefault());
 
 		const Links = () => (
 			<>
@@ -640,19 +648,19 @@ describe('Router', () => {
 
 		let pushState;
 
-		before(() => {
-			pushState = sinon.spy(history, 'pushState');
+		beforeAll(() => {
+			pushState = vi.spyOn(history, 'pushState');
 			addEventListener('click', clickHandler);
 		});
 
-		after(() => {
-			pushState.restore();
+		afterAll(() => {
+			pushState.mockRestore();
 			removeEventListener('click', clickHandler);
 		});
 
 		beforeEach(async () => {
-			clickHandler.resetHistory();
-			pushState.resetHistory();
+			clickHandler.mockClear();
+			pushState.mockClear();
 		});
 
 		it('should intercept clicks on links matching the `scope` props (string)', async () => {
@@ -665,14 +673,14 @@ describe('Router', () => {
 			);
 
 			for (const url of shouldIntercept) {
-				scratch.querySelector(`a[href="${url}"]`).click();
+				click(scratch.querySelector(`a[href="${url}"]`));
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
 				expect(pushState).to.have.been.calledWith(null, '', url);
 				expect(clickHandler).to.have.been.called;
 
-				pushState.resetHistory();
-				clickHandler.resetHistory();
+				pushState.mockClear();
+				clickHandler.mockClear();
 			}
 		});
 
@@ -686,13 +694,13 @@ describe('Router', () => {
 			);
 
 			for (const url of shouldNavigate) {
-				scratch.querySelector(`a[href="${url}"]`).click();
+				click(scratch.querySelector(`a[href="${url}"]`));
 				await sleep(1);
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
 
-				pushState.resetHistory();
-				clickHandler.resetHistory();
+				pushState.mockClear();
+				clickHandler.mockClear();
 			}
 		});
 
@@ -706,14 +714,14 @@ describe('Router', () => {
 			);
 
 			for (const url of shouldIntercept) {
-				scratch.querySelector(`a[href="${url}"]`).click();
+				click(scratch.querySelector(`a[href="${url}"]`));
 				await sleep(1);
 				expect(loc).to.deep.include({ url });
 				expect(pushState).to.have.been.calledWith(null, '', url);
 				expect(clickHandler).to.have.been.called;
 
-				pushState.resetHistory();
-				clickHandler.resetHistory();
+				pushState.mockClear();
+				clickHandler.mockClear();
 			}
 		});
 
@@ -727,25 +735,66 @@ describe('Router', () => {
 			);
 
 			for (const url of shouldNavigate) {
-				scratch.querySelector(`a[href="${url}"]`).click();
+				click(scratch.querySelector(`a[href="${url}"]`));
 				await sleep(1);
 				expect(pushState).not.to.have.been.called;
 				expect(clickHandler).to.have.been.called;
 
-				pushState.resetHistory();
-				clickHandler.resetHistory();
+				pushState.mockClear();
+				clickHandler.mockClear();
 			}
 		});
 	});
 
+	it('should scroll to top when navigating forward', async () => {
+		const scrollTo = vi.spyOn(window, 'scrollTo');
+
+		const Route = vi.fn(() => <div style={{ height: '1000px' }}><a href="/link">link</a></div>);
+		render(
+			<LocationProvider>
+				<Router>
+					<Route default />
+				</Router>
+				<ShallowLocation />
+			</LocationProvider>,
+			scratch
+		);
+
+		expect(scrollTo).not.to.have.been.called;
+		expect(Route).to.have.been.calledOnce;
+		Route.mockClear();
+
+		loc.route('/programmatic');
+		await sleep(1);
+
+		expect(loc).to.deep.include({ url: '/programmatic' });
+		expect(scrollTo).to.have.been.calledWith(0, 0);
+		expect(scrollTo).to.have.been.calledOnce;
+		expect(Route).to.have.been.calledOnce;
+		Route.mockClear();
+		scrollTo.mockClear();
+
+		click(scratch.querySelector('a'));
+		await sleep(1);
+
+		expect(loc).to.deep.include({ url: '/link' });
+		expect(scrollTo).to.have.been.calledWith(0, 0);
+		expect(scrollTo).to.have.been.calledOnce;
+		expect(Route).to.have.been.calledOnce;
+		Route.mockClear();
+
+		scrollTo.mockRestore();
+	});
+
 	it('should ignore clicks on document fragment links', async () => {
-		const Route = sinon.fake(
+		const pushState = vi.spyOn(history, 'pushState');
+
+		const Route = vi.fn(
 			() => <div>
 				<a href="#foo">just #foo</a>
 				<a href="/other#bar">other #bar</a>
 			</div>
 		);
-
 		render(
 			<LocationProvider>
 				<Router>
@@ -759,7 +808,7 @@ describe('Router', () => {
 		);
 
 		expect(Route).to.have.been.calledOnce;
-		Route.resetHistory();
+		Route.mockClear();
 
 		scratch.querySelector('a[href="#foo"]').click();
 		await sleep(1);
@@ -767,14 +816,18 @@ describe('Router', () => {
 		// NOTE: we don't (currently) propagate in-page anchor navigations into context, to avoid useless renders.
 		expect(loc).to.deep.include({ url: '/' });
 		expect(Route).not.to.have.been.called;
+		expect(pushState).not.to.have.been.called;
 		expect(location.hash).to.equal('#foo');
 
-		scratch.querySelector('a[href="/other#bar"]').click();
+		click(scratch.querySelector('a[href="/other#bar"]'));
 		await sleep(1);
 
 		expect(Route).to.have.been.calledOnce;
 		expect(loc).to.deep.include({ url: '/other#bar', path: '/other' });
+		expect(pushState).to.have.been.called;
 		expect(location.hash).to.equal('#bar');
+
+		pushState.mockRestore();
 	});
 
 	it('should ignore clicks on download links', async () => {
@@ -799,7 +852,8 @@ describe('Router', () => {
 	});
 
 	it('should normalize children', async () => {
-		const Route = sinon.fake(() => <a href="/foo#foo">foo</a>);
+		const pushState = vi.spyOn(history, 'pushState');
+		const Route = vi.fn(() => <a href="/foo#foo">foo</a>);
 
 		const routes = ['/foo', '/bar'];
 		render(
@@ -814,13 +868,16 @@ describe('Router', () => {
 		);
 
 		expect(Route).to.have.been.calledOnce;
-		Route.resetHistory();
+		Route.mockClear();
 
-		scratch.querySelector('a[href="/foo#foo"]').click();
+		click(scratch.querySelector('a[href="/foo#foo"]'));
 		await sleep(10);
 
 		expect(Route).to.have.been.calledOnce;
 		expect(loc).to.deep.include({ url: '/foo#foo', path: '/foo' });
+		expect(pushState).to.have.been.called;
+
+		pushState.mockRestore();
 	});
 
 	it('should match nested routes', async () => {
@@ -847,7 +904,7 @@ describe('Router', () => {
 			scratch
 		);
 
-		scratch.querySelector('a[href="/foo/bar/bob"]').click();
+		click(scratch.querySelector('a[href="/foo/bar/bob"]'));
 		await sleep(1);
 		expect(route).to.deep.include({ path: '/bob', params: { id: 'bar' } });
 	});
@@ -876,36 +933,60 @@ describe('Router', () => {
 			scratch
 		);
 
-		scratch.querySelector('a[href="/foo/bar/bob"]').click();
+		click(scratch.querySelector('a[href="/foo/bar/bob"]'));
 		await sleep(1);
 		expect(params).to.deep.include({ id: 'bar' });
 	});
 
-	it('should replace the current URL', async () => {
+	it('should not double-decode percent-encoded characters in nested routes', async () => {
+		let route;
+		const Inner = () => (
+			<Router>
+				<Route
+					path="/child/:id"
+					component={() => {
+						route = useRoute();
+						return null;
+					}}
+				/>
+			</Router>
+		);
+
 		render(
 			<LocationProvider>
 				<Router>
-					<Route path="/" component={() => null} />
+					<Route path="/nested/*" component={Inner} />
+				</Router>
+				<a href="/nested/child/%25"></a>
+			</LocationProvider>,
+			scratch
+		);
+
+		click(scratch.querySelector('a[href="/nested/child/%25"]'));
+		await sleep(1);
+		expect(route).to.deep.include({ params: { id: '%' } });
+	});
+
+	it('should replace the current URL', async () => {
+		const pushState = vi.spyOn(history, 'pushState');
+		const replaceState = vi.spyOn(history, 'replaceState');
+
+		render(
+			<LocationProvider>
+				<Router>
 					<Route path="/foo" component={() => null} />
-					<Route path="/bar" component={() => null} />
 				</Router>
 				<ShallowLocation />
 			</LocationProvider>,
 			scratch
 		);
 
-		navigation.navigate('/foo');
-		navigation.navigate('/bar', { history: 'replace' });
+		loc.route("/foo", true);
+		expect(pushState).not.to.have.been.called;
+		expect(replaceState).to.have.been.calledWith(null, "", "/foo");
 
-		const entries = navigation.entries();
-
-		// Top of the stack
-		const last = new URL(entries[entries.length - 1].url);
-		expect(last.pathname).to.equal('/bar');
-
-		// Entry before
-		const secondLast = new URL(entries[entries.length - 2].url);
-		expect(secondLast.pathname).to.equal('/');
+		pushState.mockRestore();
+		replaceState.mockRestore();
 	});
 
 	it('should support using `Router` as an implicit suspense boundary', async () => {
@@ -951,6 +1032,7 @@ describe('Router', () => {
 		const shadowlink = document.createElement('a');
 		shadowlink.href = '/shadow';
 		shadowlink.textContent = 'Shadow Link';
+		shadowlink.addEventListener('click', e => e.preventDefault());
 
 		const attachShadow = (el) => {
 			if (!el || el.shadowRoot) return;
@@ -958,8 +1040,8 @@ describe('Router', () => {
 			shadowroot.appendChild(shadowlink);
 		}
 
-		const Home = sinon.fake(() => <div ref={attachShadow}></div>);
-		const Shadow = sinon.fake(() => <div>Shadow Route</div>);
+		const Home = vi.fn(() => <div ref={attachShadow}></div>);
+		const Shadow = vi.fn(() => <div>Shadow Route</div>);
 
 		render(
 			<LocationProvider>
@@ -999,50 +1081,22 @@ describe('Router', () => {
 			scratch
 		);
 
-		navigation.navigate('/category/123');
+		loc.route('/category/123');
 		await sleep(10);
 
 		expect(scratch).to.have.property('textContent', '{"id":"123"}');
 
-		navigation.navigate('/category/123/products/new');
+		loc.route('/category/123/products/new');
 		await sleep(10);
 
 		// If the same `params` object was reused, this would also have an `id` property
 		// from a failed partial match against the first route.
 		expect(scratch).to.have.property('textContent', '{"categoryId":"123"}');
 
-		navigation.navigate('/category/123/products/456/edit');
+		loc.route('/category/123/products/456/edit');
 		await sleep(10);
 
 		expect(scratch).to.have.property('textContent', '{"categoryId":"123","id":"456"}');
-	});
-
-	it('should support navigating backwards and forwards', async () => {
-		render(
-			<LocationProvider>
-				<Router>
-					<Route path="/" component={() => null} />
-					<Route path="/foo" component={() => null} />
-				</Router>
-				<ShallowLocation />
-			</LocationProvider>,
-			scratch
-		);
-
-		navigation.navigate('/foo');
-		await sleep(10);
-
-		expect(loc).to.deep.include({ url: '/foo', path: '/foo', query: {} });
-
-		await navigation.back().finished;
-		await sleep(10);
-
-		expect(loc).to.deep.include({ url: '/', path: '/', query: {} });
-
-		await navigation.forward().finished;
-		await sleep(10);
-
-		expect(loc).to.deep.include({ url: '/foo', path: '/foo', query: {} });
 	});
 });
 
@@ -1070,7 +1124,7 @@ describe('hydration', () => {
 				<p>hello</p>
 			</div>
 		);
-		const A = sinon.fake(groggy(() => route('A'), 1));
+		const A = vi.fn(groggy(() => route('A'), 1));
 
 		hydrate(
 			<ErrorBoundary>
@@ -1090,7 +1144,7 @@ describe('hydration', () => {
 		mutationObserver.observe(scratch, { childList: true, subtree: true });
 
 		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 		const oldOptionsVnode = options.__b;
 		let hasMatched = false;
 		options.__b = (vnode) => {
@@ -1110,11 +1164,11 @@ describe('hydration', () => {
 				oldOptionsVnode(vnode);
 			}
 		}
-		A.resetHistory();
+		A.mockClear();
 		await sleep(10);
 
 		expect(scratch).to.have.property('innerHTML', '<div><h1>A</h1><p>hello</p></div>');
-		expect(A).to.have.been.calledWith({ path: '/', query: {}, params: {}, rest: '' });
+		expectProps(A, { path: '/', query: {}, params: {}, rest: '' });
 		expect(mutations).to.have.length(0);
 
 		options.__b = oldOptionsVnode;
