@@ -1,8 +1,8 @@
-import kl from 'kleur';
+import ansis from 'ansis';
 
 /*
- * Custom serializer borrowed from the Preact repo as the default in wtr
- * is busted when it comes to cyclical references or objects beyond a
+ * Custom serializer borrowed from the Preact repo as the default browser
+ * serializer is busted when it comes to cyclical references or objects beyond a
  * certain depth.
 
  * This also has the benefit of being much prettier and human readable,
@@ -29,7 +29,7 @@ function serializeConsoleArgs(args) {
 	// We don't have access to the users terminal width, so we'll try to
 	// format everything into one line if possible and assume a terminal
 	// width of 80 chars
-	if (kl.reset(flat.join(', ')).length <= 80) {
+	if (ansis.strip(flat.join(', ')).length <= 80) {
 		return [flat.join(', ')];
 	}
 
@@ -55,11 +55,11 @@ function applyIndent(n) {
  */
 function serialize(value, mode, indent, seen) {
 	if (seen.has(value)) {
-		return kl.cyan('[Circular]');
+		return ansis.cyan('[Circular]');
 	}
 
 	if (value === null) {
-		return kl.bold('null');
+		return ansis.bold('null');
 	} else if (Array.isArray(value)) {
 		seen.add(value);
 		const values = value.map(v => serialize(v, mode, indent + 1, seen));
@@ -106,12 +106,12 @@ function serialize(value, mode, indent, seen) {
 
 	switch (typeof value) {
 		case 'undefined':
-			return kl.dim('undefined');
+			return ansis.dim('undefined');
 
 		case 'bigint':
 		case 'number':
 		case 'boolean':
-			return kl.yellow(String(value));
+			return ansis.yellow(String(value));
 		case 'string': {
 			// By default node's built in logging doesn't wrap top level
 			// strings with quotes
@@ -119,12 +119,12 @@ function serialize(value, mode, indent, seen) {
 				return String(value);
 			}
 			const quote = /[^\\]"/.test(value) ? '"' : "'";
-			return kl.green(String(quote + value + quote));
+			return ansis.green(String(quote + value + quote));
 		}
 		case 'symbol':
-			return kl.green(value.toString());
+			return ansis.green(value.toString());
 		case 'function':
-			return kl.cyan(`[Function: ${value.name || 'anonymous'}]`);
+			return ansis.cyan(`[Function: ${value.name || 'anonymous'}]`);
 	}
 
 	if (value instanceof Element) {
