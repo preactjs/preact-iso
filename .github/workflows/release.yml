@@ -34,6 +34,10 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      # https://github.com/changesets/action/issues/523
+      - name: GitHub API only supports non-executable files and directories
+        run: git ls-files | while read -r file; do [ -x "$file" ] && chmod -x "$file" || true; done
+
       - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
@@ -77,6 +81,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --ignore-scripts
+
+      # https://github.com/changesets/action/issues/523
+      - name: GitHub API only supports non-executable files and directories
+        run: git ls-files | while read -r file; do [ -x "$file" ] && chmod -x "$file" || true; done
 
       # changesets/action skips `git config user.*` in github-api commit mode,
       # and checkout uses persist-credentials: false, so no identity is set.
