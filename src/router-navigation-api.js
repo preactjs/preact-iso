@@ -129,7 +129,7 @@ export function Router(props) {
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
 	// Monotonic counter used to check if an un-suspending route is still the current route:
-	const count = useRef(0);
+	const count = useRef(1);
 	// The current route:
 	const cur = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// Previous route (if current route is suspended):
