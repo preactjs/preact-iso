@@ -151,7 +151,7 @@ export function Router(props) {
 	const isLoading = useRef(false);
 	const prevRoute = useRef(path);
 	// Monotonic counter used to check if an un-suspending route is still the current route:
-	const count = useRef(0);
+	const count = useRef(1);
 	// The current route:
 	const cur = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// Previous route (if current route is suspended):
@@ -194,8 +194,6 @@ export function Router(props) {
 		// Only mark as an update if the route component changed.
 		const outgoing = prev.current && prev.current.props.children;
 		if (!outgoing || !incoming || incoming.type !== outgoing.type || incoming.props.component !== outgoing.props.component) {
-			// This hack prevents Preact from diffing when we swap `cur` to `prev`:
-			if (this.__v && this.__v.__k) this.__v.__k.reverse();
 			count.current++;
 			return true;
 		}
@@ -288,8 +286,11 @@ export function Router(props) {
 
 	// Note: cur MUST render first in order to set didSuspend & prev.
 	return routeChanged
-		? [h(RenderRef, { r: cur }), h(RenderRef, { r: prev })]
-		: h(RenderRef, { r: cur });
+		? [
+			h(RenderRef, { r: cur, key: count.current }),
+			h(RenderRef, { r: prev, key: count.current - 1 })
+		]
+		: h(RenderRef, { r: cur, key: count.current });
 }
 
 const MODE_HYDRATE = 1 << 5;
