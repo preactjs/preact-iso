@@ -1,5 +1,5 @@
 import { h, Fragment, render, Component, hydrate, options } from 'preact';
-import { useState } from 'preact/hooks';
+import { useLayoutEffect, useState } from 'preact/hooks';
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 import sinonChai from 'sinon-chai';
@@ -1086,6 +1086,298 @@ describe('Router', () => {
 		await sleep(10);
 
 		expect(scratch).to.have.property('textContent', '{"categoryId":"123","id":"456"}');
+	});
+
+	describe('route slot reuse', () => {
+		// The Router renders two keyed slots (`cur` and `prev`) while a route is
+		// changing and a single slot once it has settled. These cover the state
+		// that must survive that shape change.
+
+		it('should not remount a route when only its params change', async () => {
+			const mounts = [];
+			const unmounts = [];
+
+			const Home = () => <h1>home</h1>;
+			const Profile = ({ params }) => {
+				useLayoutEffect(() => {
+					mounts.push(params.id);
+					return () => unmounts.push(params.id);
+				}, []);
+				return <h1>profile/{params.id}</h1>;
+			};
+
+			render(
+				<LocationProvider>
+					<Router>
+						<Home path="/" />
+						<Profile path="/profile/:id" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			loc.route('/profile/1');
+			await sleep(10);
+			expect(scratch).to.have.property('innerHTML', '<h1>profile/1</h1>');
+			expect(mounts).to.deep.equal(['1']);
+			const dom = scratch.firstElementChild;
+
+			loc.route('/profile/2');
+			await sleep(10);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>profile/2</h1>');
+			expect(mounts).to.deep.equal(['1']);
+			expect(unmounts).to.deep.equal([]);
+			expect(scratch.firstElementChild).to.equal(dom);
+		});
+
+		it('should preserve component state across param changes', async () => {
+			let increment;
+
+			const Home = () => <h1>home</h1>;
+			const Counter = ({ params }) => {
+				const [count, setCount] = useState(0);
+				increment = () => setCount(c => c + 1);
+				return <h1>{params.id}:{count}</h1>;
+			};
+
+			render(
+				<LocationProvider>
+					<Router>
+						<Home path="/" />
+						<Counter path="/counter/:id" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			loc.route('/counter/a');
+			await sleep(10);
+
+			increment();
+			increment();
+			await sleep(1);
+			expect(scratch).to.have.property('textContent', 'a:2');
+
+			loc.route('/counter/b');
+			await sleep(10);
+
+			expect(scratch).to.have.property('textContent', 'b:2');
+		});
+
+		it('should not remount across repeated param changes', async () => {
+			const mounts = [];
+
+			const Home = () => <h1>home</h1>;
+			const Item = ({ params }) => {
+				useLayoutEffect(() => {
+					mounts.push(params.id);
+				}, []);
+				return <h1>item/{params.id}</h1>;
+			};
+
+			render(
+				<LocationProvider>
+					<Router>
+						<Home path="/" />
+						<Item path="/item/:id" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			loc.route('/item/1');
+			await sleep(10);
+
+			for (const id of ['2', '3', '4', '5']) {
+				loc.route(`/item/${id}`);
+				await sleep(10);
+				expect(scratch).to.have.property('innerHTML', `<h1>item/${id}</h1>`);
+			}
+
+			expect(mounts).to.deep.equal(['1']);
+		});
+
+		it('should mount a fresh instance when the route component changes', async () => {
+			const mounts = [];
+			const unmounts = [];
+
+			const track = name => () => {
+				useLayoutEffect(() => {
+					mounts.push(name);
+					return () => unmounts.push(name);
+				}, []);
+				return <h1>{name}</h1>;
+			};
+			const A = track('a');
+			const B = track('b');
+
+			render(
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+						<B path="/b" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+			expect(mounts).to.deep.equal(['a']);
+
+			loc.route('/b');
+			await sleep(10);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+			expect(mounts).to.deep.equal(['a', 'b']);
+			expect(unmounts).to.deep.equal(['a']);
+
+			// Returning to a route mounts it again rather than reviving the old instance.
+			loc.route('/');
+			await sleep(10);
+			expect(mounts).to.deep.equal(['a', 'b', 'a']);
+			expect(unmounts).to.deep.equal(['a', 'b']);
+		});
+
+		it('should keep the outgoing route mounted while an async route loads', async () => {
+			const mounts = [];
+			const A = () => {
+				useLayoutEffect(() => {
+					mounts.push('a');
+					return () => mounts.push('a cleanup');
+				}, []);
+				return <h1>a</h1>;
+			};
+			const B = groggy(() => <h1>b</h1>, 10);
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(10);
+			expect(mounts).to.deep.equal(['a']);
+
+			loc.route('/b');
+			await sleep(1);
+
+			// B is still loading, so A stays on screen and stays mounted.
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+			expect(mounts).to.deep.equal(['a']);
+
+			await sleep(20);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+			expect(mounts).to.deep.equal(['a', 'a cleanup']);
+		});
+
+		it('should preserve outgoing route state while an async route loads', async () => {
+			let increment;
+
+			const A = () => {
+				const [count, setCount] = useState(0);
+				increment = () => setCount(c => c + 1);
+				return <h1>a:{count}</h1>;
+			};
+			const B = groggy(() => <h1>b</h1>, 10);
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(10);
+
+			increment();
+			await sleep(1);
+			expect(scratch).to.have.property('textContent', 'a:1');
+
+			loc.route('/b');
+			await sleep(1);
+
+			// The retained route keeps its state rather than remounting at 0.
+			expect(scratch).to.have.property('textContent', 'a:1');
+
+			await sleep(20);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+		});
+
+		it('should handle back-to-back route changes', async () => {
+			const A = () => <h1>a</h1>;
+			const B = sinon.fake(() => <h1>b</h1>);
+			const C = () => <h1>c</h1>;
+
+			render(
+				<LocationProvider>
+					<Router>
+						<A path="/" />
+						<B path="/b" />
+						<C path="/c" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>,
+				scratch
+			);
+			await sleep(10);
+
+			loc.route('/b');
+			loc.route('/c');
+			await sleep(10);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>c</h1>');
+
+			loc.route('/');
+			await sleep(10);
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+		});
+
+		it('should not leave a stale route mounted after settling', async () => {
+			const A = () => <h1>a</h1>;
+			const B = groggy(() => <h1>b</h1>, 10);
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(10);
+
+			loc.route('/b');
+			await sleep(20);
+
+			// Once the incoming route commits, only it remains.
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			loc.route('/');
+			await sleep(10);
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+		});
 	});
 });
 
