@@ -23,6 +23,26 @@ function isInScope(href) {
 	);
 }
 
+/** @param {string} url */
+function scrollToUrl(url) {
+	const hash = new URL(url, location.origin).hash;
+	if (hash) {
+		try {
+			const fragment = decodeURIComponent(hash.slice(1));
+			const target = document.getElementById(fragment) ||
+				Array.from(document.getElementsByName(fragment)).find(
+					element => element.localName == 'a'
+				);
+			if (target) {
+				target.scrollIntoView();
+				return;
+			}
+		} catch {}
+	}
+
+	scrollTo(0, 0);
+}
+
 /**
  * @param {string} state
  * @param {MouseEvent | PopStateEvent | { url: string, replace?: boolean }} action
@@ -274,7 +294,7 @@ export function Router(props) {
 
 		// The route is loaded and rendered.
 		if (prevRoute.current !== path) {
-			if (wasPush) scrollTo(0, 0);
+			if (wasPush) scrollToUrl(url);
 			if (props.onRouteChange) props.onRouteChange(url);
 
 			prevRoute.current = path;

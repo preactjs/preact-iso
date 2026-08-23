@@ -775,13 +775,15 @@ describe('Router', () => {
 		scrollTo.restore();
 	});
 
-	it('should ignore clicks on document fragment links', async () => {
+	it('should handle document fragment links', async () => {
 		const pushState = sinon.spy(history, 'pushState');
+		const scrollIntoView = sinon.spy(Element.prototype, 'scrollIntoView');
 
 		const Route = sinon.fake(
 			() => <div>
 				<a href="#foo">just #foo</a>
 				<a href="/other#bar">other #bar</a>
+				<a name="bar">bar target</a>
 			</div>
 		);
 		render(
@@ -815,8 +817,11 @@ describe('Router', () => {
 		expect(loc).to.deep.include({ url: '/other#bar', path: '/other' });
 		expect(pushState).to.have.been.called;
 		expect(location.hash).to.equal('#bar');
+		expect(scrollIntoView).to.have.been.calledOnce;
+		expect(scrollIntoView).to.have.been.calledOn(scratch.querySelector('a[name="bar"]'));
 
 		pushState.restore();
+		scrollIntoView.restore();
 	});
 
 	it('should ignore clicks on download links', async () => {
