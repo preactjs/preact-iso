@@ -22,6 +22,39 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // delayed lazy()
 const groggy = (component, ms) => lazy(() => sleep(ms).then(() => component));
 
+// lazy() component that then makes two requests, one after the other. Each stage suspends it
+// until the test calls `resolve(stage)`; then it re-renders itself, as lazy() and data hooks do.
+const staged = output => {
+	const stages = {};
+	for (const stage of ['code', 'first', 'second']) {
+		let resolve;
+		const promise = new Promise(r => (resolve = r));
+		stages[stage] = { promise, resolve };
+	}
+	const load = (stage, update) => {
+		const s = stages[stage];
+		if (!s.started) {
+			s.started = true;
+			s.promise.then(() => {
+				s.done = true;
+				update(n => n + 1);
+			});
+		}
+		if (!s.done) throw s.promise;
+	};
+	let renders = 0;
+	const Component = lazy(() =>
+		stages.code.promise.then(() => () => {
+			const [, update] = useState(0);
+			renders++;
+			load('first', update);
+			load('second', update);
+			return output;
+		})
+	);
+	return { Component, resolve: stage => stages[stage].resolve(), renders: () => renders };
+};
+
 describe('Router', () => {
 	let scratch, loc;
 
@@ -542,6 +575,46 @@ describe('Router', () => {
 		await sleep(1);
 
 		expect(loadEnd).not.to.have.been.called;
+	});
+
+	it('should call onLoadEnd/onRouteChange once a route that suspends more than once has loaded', async () => {
+		const A = () => <h1>a</h1>;
+		const { Component: B, resolve } = staged(<h1>b</h1>);
+		const loadEnd = sinon.fake();
+		const routeChange = sinon.fake();
+
+		render(
+			<ErrorBoundary>
+				<LocationProvider>
+					<Router onLoadEnd={loadEnd} onRouteChange={routeChange}>
+						<A path="/" />
+						<B path="/b" />
+					</Router>
+					<ShallowLocation />
+				</LocationProvider>
+			</ErrorBoundary>,
+			scratch
+		);
+		await sleep(1);
+		loadEnd.resetHistory();
+		routeChange.resetHistory();
+
+		loc.route('/b');
+		resolve('code');
+		await sleep(1);
+
+		// B's code has loaded, but it's waiting for its data:
+		expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+		expect(loadEnd).not.to.have.been.called;
+		expect(routeChange).not.to.have.been.called;
+
+		resolve('first');
+		resolve('second');
+		await sleep(1);
+
+		expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+		expect(loadEnd).to.have.been.calledOnceWith('/b');
+		expect(routeChange).to.have.been.calledOnceWith('/b');
 	});
 
 	describe('intercepted VS external links', () => {
@@ -1281,6 +1354,409 @@ describe('Router', () => {
 
 			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
 			expect(mounts).to.deep.equal(['a', 'a cleanup']);
+		});
+
+		it('should keep the outgoing route mounted until the incoming route stops suspending', async () => {
+			const mounts = [];
+			const A = () => {
+				useLayoutEffect(() => {
+					mounts.push('a');
+					return () => mounts.push('a cleanup');
+				}, []);
+				return <h1>a</h1>;
+			};
+			const { Component: B, resolve } = staged(<h1>b</h1>);
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(1);
+
+			// B is loading its code:
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+			expect(mounts).to.deep.equal(['a']);
+
+			resolve('code');
+			await sleep(1);
+
+			// B's code has loaded, and it waits for its first request:
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+			expect(mounts).to.deep.equal(['a']);
+
+			resolve('first');
+			await sleep(1);
+
+			// Then for its second:
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+			expect(mounts).to.deep.equal(['a']);
+
+			resolve('second');
+			await sleep(1);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+			expect(mounts).to.deep.equal(['a', 'a cleanup']);
+		});
+
+		it('should not wait for a route that is still loading once navigated away from', async () => {
+			const A = () => <h1>a</h1>;
+			const { Component: B, resolve } = staged(<h1>b</h1>);
+			const C = () => <h1>c</h1>;
+			const routeChange = sinon.fake();
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router onRouteChange={routeChange}>
+							<A path="/" />
+							<B path="/b" />
+							<C path="/c" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+			routeChange.resetHistory();
+
+			loc.route('/b');
+			resolve('code');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+			// B waits for its data, but C doesn't wait for B:
+			loc.route('/c');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>c</h1>');
+			expect(routeChange).to.have.been.calledOnceWith('/c');
+
+			resolve('first');
+			resolve('second');
+			await sleep(1);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>c</h1>');
+			expect(routeChange).to.have.been.calledOnce;
+		});
+
+		it('should not bring back the previous route when the loaded route suspends in place', async () => {
+			const A = () => <h1>a</h1>;
+			const { Component: Dialog, resolve } = staged(<p>dialog</p>);
+			let open;
+			const B = () => {
+				const [isOpen, setOpen] = useState(false);
+				open = () => setOpen(true);
+				return (
+					<>
+						<h1>b</h1>
+						{isOpen && <Dialog />}
+					</>
+				);
+			};
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			// The dialog loads its code, then waits for its first request, then for its second:
+			open();
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('code');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('first');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('second');
+			await sleep(1);
+
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1><p>dialog</p>');
+		});
+
+		it('should not bring back the previous route when a route that loaded without its first promise suspends in place', async () => {
+			const A = () => <h1>a</h1>;
+			const { Component: Dialog, resolve } = staged(<p>dialog</p>);
+			let setData, open, rerender;
+			const B = () => {
+				const [data, set] = useState(null);
+				const [isOpen, setOpen] = useState(false);
+				setData = set;
+				open = () => setOpen(true);
+				// Waits for a promise that never settles, until its data arrives some other way:
+				if (!data) throw new Promise(() => {});
+				return (
+					<>
+						<h1>{data}</h1>
+						{isOpen && <Dialog />}
+					</>
+				);
+			};
+			const App = () => {
+				rerender = useState(0)[1];
+				return (
+					<ErrorBoundary>
+						<LocationProvider>
+							<Router>
+								<A path="/" />
+								<B path="/b" />
+							</Router>
+							<ShallowLocation />
+						</LocationProvider>
+					</ErrorBoundary>
+				);
+			};
+			render(<App />, scratch);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+			// B gets its data and renders, while the promise it suspended on never settles. Then the Router re-renders,
+			// which ends the transition although none of its promises resolved:
+			setData('b');
+			await sleep(1);
+			rerender(1);
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			// B opens a dialog, which loads its code, then waits for its first request, then for its second:
+			open();
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('code');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('first');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+
+			resolve('second');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1><p>dialog</p>');
+		});
+
+		it('should keep the outgoing route while a route suspends more than once, with custom render scheduling', async () => {
+			const debounceRendering = options.debounceRendering;
+			// Renders scheduled with setTimeout, so the route's own re-render and the Router's are batched:
+			options.debounceRendering = cb => setTimeout(cb);
+
+			try {
+				const A = () => <h1>a</h1>;
+				const { Component: B, resolve } = staged(<h1>b</h1>);
+
+				render(
+					<ErrorBoundary>
+						<LocationProvider>
+							<Router>
+								<A path="/" />
+								<B path="/b" />
+							</Router>
+							<ShallowLocation />
+						</LocationProvider>
+					</ErrorBoundary>,
+					scratch
+				);
+				await sleep(10);
+
+				loc.route('/b');
+				await sleep(10);
+				expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+				resolve('code');
+				await sleep(10);
+
+				// B's code has loaded, and it waits for its first request:
+				expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+				resolve('first');
+				await sleep(10);
+				expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+				resolve('second');
+				await sleep(10);
+				expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+			} finally {
+				options.debounceRendering = debounceRendering;
+			}
+		});
+
+		it('should render the incoming route once each time a promise it suspended on resolves', async () => {
+			const A = () => <h1>a</h1>;
+			const { Component: B, resolve, renders } = staged(<h1>b</h1>);
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(1);
+			expect(renders()).to.equal(0);
+
+			// Each stage renders B once, though both B and the Router re-render:
+			resolve('code');
+			await sleep(1);
+			expect(renders()).to.equal(1);
+
+			resolve('first');
+			await sleep(1);
+			expect(renders()).to.equal(2);
+
+			resolve('second');
+			await sleep(1);
+			expect(renders()).to.equal(3);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+		});
+
+		it('should re-render an incoming route that suspends without scheduling its own update', async () => {
+			const A = () => <h1>a</h1>;
+			let data, resolveRequest;
+			const request = new Promise(r => (resolveRequest = r)).then(() => (data = 'b'));
+			// Throws its request until the data is in, but never updates itself:
+			const B = () => {
+				if (!data) throw request;
+				return <h1>{data}</h1>;
+			};
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>a</h1>');
+
+			resolveRequest();
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>b</h1>');
+		});
+
+		it('should keep showing a route while it suspends on new params', async () => {
+			const requests = {};
+			const request = id => {
+				if (!requests[id]) {
+					let resolve;
+					const promise = new Promise(r => (resolve = r));
+					requests[id] = { promise, resolve };
+				}
+				return requests[id];
+			};
+			// Suspends until the request for its id is in, then re-renders itself:
+			const P = ({ params }) => {
+				const [, update] = useState(0);
+				const r = request(params.id);
+				if (!r.started) {
+					r.started = true;
+					r.promise.then(() => {
+						r.done = true;
+						update(n => n + 1);
+					});
+				}
+				if (!r.done) throw r.promise;
+				return <h1>{params.id}</h1>;
+			};
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<P path="/p/:id" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			loc.route('/p/1');
+			await sleep(1);
+			request('1').resolve();
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>1</h1>');
+
+			loc.route('/p/2');
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>1</h1>');
+
+			request('2').resolve();
+			await sleep(1);
+			expect(scratch).to.have.property('innerHTML', '<h1>2</h1>');
+		});
+
+		it('should not loop when an incoming route keeps throwing a promise that has resolved', async () => {
+			const A = () => <h1>a</h1>;
+			// A module without a component: lazy() resolves, but keeps throwing its promise.
+			const B = lazy(() => Promise.resolve(undefined));
+
+			render(
+				<ErrorBoundary>
+					<LocationProvider>
+						<Router>
+							<A path="/" />
+							<B path="/b" />
+						</Router>
+						<ShallowLocation />
+					</LocationProvider>
+				</ErrorBoundary>,
+				scratch
+			);
+			await sleep(1);
+
+			loc.route('/b');
+			await sleep(10);
+
+			// B can't render, as before, but the page doesn't hang:
+			expect(scratch).to.have.property('innerHTML', '');
 		});
 
 		it('should preserve outgoing route state while an async route loads', async () => {

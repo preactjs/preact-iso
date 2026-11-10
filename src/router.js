@@ -138,6 +138,8 @@ export function LocationProvider(props) {
 }
 
 const RESOLVED = Promise.resolve();
+// Promises the Router has already re-rendered an incoming route for:
+const RETRIED = new WeakSet();
 /** @this {import('./internal.d.ts').AugmentedComponent} */
 export function Router(props) {
 	const [c, update] = useReducer(c => c + 1, 0);
@@ -156,6 +158,8 @@ export function Router(props) {
 	const cur = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// Previous route (if current route is suspended):
 	const prev = /** @type {RefObject<VNode<any>>} */ (useRef());
+	// The route being navigated away from, until the incoming route renders without suspending:
+	const outgoingRoute = /** @type {RefObject<VNode<any>>} */ (useRef());
 	// A not-yet-hydrated DOM root to remove once we commit:
 	const pendingBase = /** @type {RefObject<Element | Text>} */ (useRef());
 	// has this component ever successfully rendered without suspending:
@@ -187,7 +191,7 @@ export function Router(props) {
 	const isHydratingSuspense = cur.current && cur.current.__u & MODE_HYDRATE && cur.current.__u & MODE_SUSPENDED;
 	const isHydratingBool = cur.current && cur.current.__h;
 	const routeChanged = useMemo(() => {
-		prev.current = cur.current;
+		prev.current = outgoingRoute.current = cur.current;
 
 		cur.current = /** @type {VNode<any>} */ (h(RouteContext.Provider, { value: matchProps }, incoming));
 
@@ -208,7 +212,6 @@ export function Router(props) {
 	}
 
 	// Reset previous children - if rendering succeeds synchronously, we shouldn't render the previous children.
-	const p = prev.current;
 	prev.current = null;
 
 	// This borrows the _childDidSuspend() solution from compat.
@@ -217,7 +220,7 @@ export function Router(props) {
 		didSuspend.current = true;
 
 		// The new route suspended, so keep the previous route around while it loads:
-		prev.current = p;
+		prev.current = outgoingRoute.current;
 
 		// Fire an event saying we're waiting for the route:
 		if (props.onLoadStart) props.onLoadStart(url);
@@ -231,7 +234,18 @@ export function Router(props) {
 
 			// Successful route transition: un-suspend after a tick and stop rendering the old route:
 			prev.current = null;
+
+			// While the previous route is kept, re-render the incoming route ourselves, as a new vnode so Preact
+			// doesn't skip it: if it suspends again (e.g. lazy() code, then data), that happens in this render,
+			// and the previous route stays. Once per promise, so a route that throws it again can't loop.
+			const retry = outgoingRoute.current && !RETRIED.has(e);
 			if (cur.current) {
+				if (retry) {
+					RETRIED.add(e);
+					const route = cur.current.props.children;
+					cur.current = cloneElement(cur.current, null, route && cloneElement(route));
+				}
+
 				if (suspendedVNode.__h) {
 					// _hydrating
 					cur.current.__h = suspendedVNode.__h;
@@ -247,9 +261,17 @@ export function Router(props) {
 				}
 			}
 
-			RESOLVED.then(update);
+			// A retry updates in the same pass as the route's own re-render (if it schedules one): Preact
+			// renders the Router first, and the route only once.
+			if (retry) update();
+			else RESOLVED.then(update);
 		});
 	};
+
+	// Once the incoming route renders without suspending, the transition is over:
+	useLayoutEffect(() => {
+		if (!didSuspend.current) outgoingRoute.current = null;
+	});
 
 	useLayoutEffect(() => {
 		const currentDom = this.__v && this.__v.__e;
